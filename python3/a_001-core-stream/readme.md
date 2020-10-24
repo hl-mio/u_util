@@ -28,6 +28,6 @@ if __name__ == '__main__':
         return item
     my_dict_2_1 = stream(my_dict).filter(lambda i: int(i["value"]) % 2 == 0).map(my_map).collect()
     print(my_dict_2_1)
-    my_dict_2_2 = stream(my_dict).filter(lambda i: int(i["value"]) % 2 == 0).map(my_map).collect(False)
+    my_dict_2_2 = stream(my_dict).filter(lambda i: int(i["value"]) % 2 == 0).map(my_map).collect(is_to_dict = False)
     print(my_dict_2_2)
 
