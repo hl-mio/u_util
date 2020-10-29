@@ -92,7 +92,7 @@ def getCurrentDatetime_str(format_str="%Y-%m-%d %H:%M:%S"):
 
 
 # 递归获取 指定目录下，拥有指定后缀，的文件路径
-def getDeepFilePaths(baseFilePath, ext="txt", is_deep=True, rst_filePaths=[]):
+def getDeepFilePaths(baseFilePath, ext="txt", is_deep = True, rst_filePaths=[]):
     if not baseFilePath:
         baseFilePath = "."
     # 处理ext后缀
@@ -113,26 +113,26 @@ def getDeepFilePaths(baseFilePath, ext="txt", is_deep=True, rst_filePaths=[]):
             raise Exception("ext的类型不支持")
 
     # 获取当前目录下的所有文件名
-    f_list = os.listdir(baseFilePath)
-    
+    f_list = stream(os.listdir(baseFilePath)) \
+                .map(lambda fileName: f"{baseFilePath}/{fileName}") \
+                .collect()
+
     if is_all_ext:
         rst_filePaths += stream(f_list) \
-                            .map(lambda fileName: f"{baseFilePath}/{fileName}") \
                             .filter(lambda f: not os.path.isdir(f)) \
                             .collect()
     else:
         # 将当前目录下后缀名为指定后缀的文件，放入rst_filePaths列表
         stream(f_list) \
-            .filter(lambda fileName: os.path.splitext(fileName)[1] in selectExt_list) \
-            .filter(lambda fileName: not os.path.isdir(f"{baseFilePath}/{fileName}")) \
-            .forEach(lambda fileName: rst_filePaths.append(baseFilePath + "/" + fileName))
+            .filter(lambda f: not os.path.isdir(f)) \
+            .filter(lambda f: os.path.splitext(f)[1] in selectExt_list) \
+            .forEach(lambda f: rst_filePaths.append(f))
 
     # 递归当前目录下的目录
     if is_deep:
         stream(f_list) \
-            .map(lambda fileName: f"{baseFilePath}/{fileName}") \
             .filter(lambda f: os.path.isdir(f)) \
-            .forEach(lambda dir: getDeepFilePaths(dir, ext, rst_filePaths))
+            .forEach(lambda dir: getDeepFilePaths(dir, ext, True, rst_filePaths))
 
     return rst_filePaths
 
