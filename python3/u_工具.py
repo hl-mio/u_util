@@ -91,24 +91,51 @@ def getCurrentDatetime_str(format_str="%Y-%m-%d %H:%M:%S"):
     return datetime.datetime.now().strftime(format_str)
 
 
-# 递归获取 指定目录下指定后缀的文件，的路径
-def getDeepFilePaths(filePaths, baseFilePath, ext="txt"):
+# 递归获取 指定目录下，拥有指定后缀，的文件路径
+def getDeepFilePaths(baseFilePath, ext="txt", is_deep=True, rst_filePaths=[]):
+    if not baseFilePath:
+        baseFilePath = "."
+    # 处理ext后缀
+    is_all_ext = False
+    selectExt_list = []
+    if not ext:
+        selectExt_list.append("")
+    else:
+        if ext == "*":
+            is_all_ext = True
+        elif isinstance(ext, str):
+            selectExt_list.append(f".{ext}")
+        elif isinstance(ext, list):
+            selectExt_list = stream(ext).filter(lambda i: i).map(lambda i: f".{i}").collect()
+            if "" in ext:
+                selectExt_list.append("")
+        else:
+            raise Exception("ext的类型不支持")
+
     # 获取当前目录下的所有文件名
     f_list = os.listdir(baseFilePath)
-    # 将当前目录下后缀名为指定后缀的文件，放入filePaths列表
-    if ext:
-        selectExt = f'.{ext}'
+    
+    if is_all_ext:
+        rst_filePaths += stream(f_list) \
+                            .map(lambda fileName: f"{baseFilePath}/{fileName}") \
+                            .filter(lambda f: not os.path.isdir(f)) \
+                            .collect()
     else:
-        selectExt = ""
-    stream(f_list) \
-        .filter(lambda fileName: os.path.splitext(fileName)[1] == selectExt) \
-        .filter(lambda fileName: not os.path.isdir(f"{baseFilePath}/{fileName}")) \
-        .forEach(lambda fileName: filePaths.append(baseFilePath + "/" + fileName))
+        # 将当前目录下后缀名为指定后缀的文件，放入rst_filePaths列表
+        stream(f_list) \
+            .filter(lambda fileName: os.path.splitext(fileName)[1] in selectExt_list) \
+            .filter(lambda fileName: not os.path.isdir(f"{baseFilePath}/{fileName}")) \
+            .forEach(lambda fileName: rst_filePaths.append(baseFilePath + "/" + fileName))
+
     # 递归当前目录下的目录
-    stream(f_list) \
-        .map(lambda fileName: f"{baseFilePath}/{fileName}") \
-        .filter(lambda f: os.path.isdir(f)) \
-        .forEach(lambda dir: getDeepFilePaths(filePaths, dir, ext))
+    if is_deep:
+        stream(f_list) \
+            .map(lambda fileName: f"{baseFilePath}/{fileName}") \
+            .filter(lambda f: os.path.isdir(f)) \
+            .forEach(lambda dir: getDeepFilePaths(dir, ext, rst_filePaths))
+
+    return rst_filePaths
+
 
 
 # endregion 未分类
