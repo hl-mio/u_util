@@ -196,10 +196,11 @@ class Oracle:
         self.lines = []
 
     def __del__(self):
-        if self.cursor:
-            self.cursor.close()
         if self.conn:
-            self.conn.close()
+            try:
+                self.conn.close()
+            except:
+                pass
 
     @staticmethod
     def 实例化(new_conf={}):
@@ -312,7 +313,10 @@ class Mysql:
 
     def __del__(self):
         if self.conn:
-            self.conn.close()
+            try:
+                self.conn.close()
+            except:
+                pass
 
     @staticmethod
     def 实例化(new_conf={}):
