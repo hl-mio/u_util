@@ -80,7 +80,10 @@ def getDictValue(my_dict, key="", default=None, 分隔符="."):
         key = key[start_index:end_index+1]
         keys = key.split(分隔符)
         for key in keys:
-            my_dict = my_dict[key]
+            if isinstance(my_dict, list):
+                my_dict = my_dict[int(key)]
+            else:
+                my_dict = my_dict[key]
         return my_dict
     except:
         return default
@@ -92,9 +95,15 @@ def setDictValue(mydict,key,value,分隔符='.'):
     length = len(keys)
     for index,i in enumerate(key.split(分隔符)):
         if int(index)+1 == length:
-            mydict[i] = value
+            if isinstance(mydict, list):
+                mydict[int(i)] = value
+            else:
+                mydict[i] = value
         else:
-            mydict = mydict[i]
+            if isinstance(mydict, list):
+                mydict = mydict[int(i)]
+            else:
+                mydict = mydict[i]
 
 
 # 获取当前时间的字符串
