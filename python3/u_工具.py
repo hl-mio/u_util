@@ -168,24 +168,30 @@ def exist(文件全路径):
 def isdir(文件全路径):
     return os.path.isdir(文件全路径)
 
-def ls(文件全路径, 选项=""):
+def ls(文件全路径, 选项="", 是否包含前缀=False):
     选项 = 选项.lower()
-    if isdir(文件全路径):
-        if ("p" in 选项) or ("r" in 选项):
-            return getDeepFilePaths(文件全路径, "*")
+    if exist(文件全路径):
+        if isdir(文件全路径):
+            if ("p" in 选项) or ("r" in 选项):
+                return getDeepFilePaths(文件全路径, "*")
+            else:
+                if 是否包含前缀:
+                    return stream(os.listdir(文件全路径))\
+                            .map(lambda i: f"{文件全路径}/{i}").collect()
+                else:
+                    return os.listdir(文件全路径)
         else:
-            return os.listdir(文件全路径)
+            return [文件全路径];
     else:
-        return 文件全路径;
+        return []
 
 def mkdir(文件全路径, 选项="-p"):
     选项 = 选项.lower()
-    if isdir(文件全路径):
-        if not exist(文件全路径):
-            if ("p" in 选项) or ("r" in 选项):
-                os.makedirs(文件全路径)
-            else:
-                os.mkdir(文件全路径)
+    if not exist(文件全路径):
+        if ("p" in 选项) or ("r" in 选项):
+            os.makedirs(文件全路径)
+        else:
+            os.mkdir(文件全路径)
 
 def mk(文件全路径, 选项="-p", 删除原文件 = False):
     选项 = 选项.lower()
@@ -195,9 +201,13 @@ def mk(文件全路径, 选项="-p", 删除原文件 = False):
         else:
             return
 
-    if isdir(文件全路径):
+    文件后缀 = get文件后缀(文件全路径)
+    if not 文件后缀:
         mkdir(文件全路径, 选项)
     else:
+        所在目录 = get文件所在目录(文件全路径)
+        if 所在目录 and (not exist(所在目录)):
+            mk(所在目录, 选项)
         with open(文件全路径,"a"):
             pass
 
