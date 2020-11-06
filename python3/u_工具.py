@@ -160,6 +160,80 @@ def getDeepFilePaths(baseFilePath, ext="txt", is_deep = True, rst_filePaths=[]):
 # endregion 未分类
 
 
+# region fileSystem
+
+def exist(文件全路径):
+    return os.path.exists(文件全路径)
+
+def isdir(文件全路径):
+    return os.path.isdir(文件全路径)
+
+def ls(文件全路径, 选项=""):
+    选项 = 选项.lower()
+    if isdir(文件全路径):
+        if ("p" in 选项) or ("r" in 选项):
+            return getDeepFilePaths(文件全路径, "*")
+        else:
+            return os.listdir(文件全路径)
+    else:
+        return 文件全路径;
+
+def mkdir(文件全路径, 选项="-p"):
+    选项 = 选项.lower()
+    if isdir(文件全路径):
+        if not exist(文件全路径):
+            if ("p" in 选项) or ("r" in 选项):
+                os.makedirs(文件全路径)
+            else:
+                os.mkdir(文件全路径)
+
+def mk(文件全路径, 选项="-p", 删除原文件 = False):
+    选项 = 选项.lower()
+    if exist(文件全路径):
+        if 删除原文件:
+            rm(文件全路径)
+        else:
+            return
+
+    if isdir(文件全路径):
+        mkdir(文件全路径, 选项)
+    else:
+        with open(文件全路径,"a"):
+            pass
+
+def rm(文件全路径, 选项="-rf"):
+    if exist(文件全路径):
+        if isdir(文件全路径):
+            if ("p" in 选项) or ("r" in 选项):
+                shutil.rmtree(文件全路径) 
+            else:
+                try:
+                    os.rmdir(文件全路径)
+                except:
+                    stream(ls(文件全路径)).filter(lambda i: not isdir(i)) \
+                        .forEach(lambda i: os.remove(i))
+        else:
+            os.remove(文件全路径)
+
+def get文件后缀(文件全路径):
+    return os.path.splitext(文件全路径)[1]
+
+def get文件名(文件全路径):
+    return os.path.basename(文件全路径)
+
+def get文件所在目录(文件全路径):
+    return os.path.dirname(文件全路径)
+
+def basename(文件全路径):
+    return get文件名(文件全路径)
+
+def dirname(文件全路径):
+    return get文件所在目录(文件全路径)
+
+
+# endregion fileSystem
+
+
 # region dao
 
 # region oracle
