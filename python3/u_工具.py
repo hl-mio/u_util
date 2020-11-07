@@ -166,16 +166,23 @@ def exist(文件全路径):
     return os.path.exists(文件全路径)
 
 def isdir(文件全路径):
-    return os.path.isdir(文件全路径)
+    if exist(文件全路径):
+        return os.path.isdir(文件全路径)
+    else:
+        文件后缀 = get文件后缀(文件全路径)
+        if not 文件后缀:
+            return True
+        else:
+            return False
 
-def ls(文件全路径, 选项="", 是否包含前缀=False):
+def ls(文件全路径, 选项="", 要包含前缀=False):
     选项 = 选项.lower()
     if exist(文件全路径):
         if isdir(文件全路径):
             if ("p" in 选项) or ("r" in 选项):
                 return getDeepFilePaths(文件全路径, "*")
             else:
-                if 是否包含前缀:
+                if 要包含前缀:
                     return stream(os.listdir(文件全路径))\
                             .map(lambda i: f"{文件全路径}/{i}").collect()
                 else:
@@ -193,16 +200,15 @@ def mkdir(文件全路径, 选项="-p"):
         else:
             os.mkdir(文件全路径)
 
-def mk(文件全路径, 选项="-p", 删除原文件 = False):
+def mk(文件全路径, 选项="-p", 要删除原文件=False):
     选项 = 选项.lower()
     if exist(文件全路径):
-        if 删除原文件:
+        if 要删除原文件:
             rm(文件全路径)
         else:
             return
 
-    文件后缀 = get文件后缀(文件全路径)
-    if not 文件后缀:
+    if isdir(文件全路径):
         mkdir(文件全路径, 选项)
     else:
         所在目录 = get文件所在目录(文件全路径)
@@ -215,13 +221,13 @@ def rm(文件全路径, 选项="-rf"):
     if exist(文件全路径):
         if isdir(文件全路径):
             if ("p" in 选项) or ("r" in 选项):
-                shutil.rmtree(文件全路径) 
+                shutil.rmtree(文件全路径)
             else:
                 try:
                     os.rmdir(文件全路径)
                 except:
                     stream(ls(文件全路径)).filter(lambda i: not isdir(i)) \
-                        .forEach(lambda i: os.remove(i))
+                        .forEach(lambda i: rm(i))
         else:
             os.remove(文件全路径)
 
