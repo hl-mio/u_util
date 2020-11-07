@@ -200,10 +200,10 @@ def mkdir(文件全路径, 选项="-p"):
         else:
             os.mkdir(文件全路径)
 
-def mk(文件全路径, 选项="-p", 要删除原文件=False):
+def mk(文件全路径, 选项="-p", 要删除旧文件=False):
     选项 = 选项.lower()
     if exist(文件全路径):
-        if 要删除原文件:
+        if 要删除旧文件:
             rm(文件全路径)
         else:
             return
@@ -245,6 +245,45 @@ def basename(文件全路径):
 
 def dirname(文件全路径):
     return get文件所在目录(文件全路径)
+
+def cp(旧文件, 新文件, 要删除旧文件=False):
+    旧文件类型 = "dir" if isdir(旧文件) else "file"
+    新文件类型 = "dir" if isdir(新文件) else "file"
+
+    def file_file():
+        # shutil.copyfile(旧文件,新文件)  # 只复制内容
+        # 复制内容和权限 新文件不存在：新建，存在：覆盖
+        shutil.copy(旧文件, 新文件)
+
+    def file_dir():
+        if not exist(新文件):
+            mk(新文件)
+        shutil.copy(旧文件,新文件)
+
+    def dir_file():
+        if not exist(新文件):
+            mk(新文件)
+        with open(新文件, "ab") as ff:
+            for i in ls(旧文件, 要包含前缀=True):
+                with open(i, "rb") as f:
+                    ff.write(f.read())
+
+    def dir_dir():
+        shutil.copytree(旧文件, 新文件)
+
+    def default():
+        raise Exception("复制失败,参数类型未支持")
+
+    switch = {
+        "file-file": file_file,
+        "file-dir": file_dir,
+        "dir-file": dir_file,
+        "dir-dir": dir_dir
+    }
+    switch.get(f"{旧文件类型}-{新文件类型}", default)()
+
+    if 要删除旧文件:
+        rm(旧文件)
 
 
 # endregion fileSystem
