@@ -2,6 +2,7 @@
 import hashlib
 import json
 import os
+import shutil
 import time
 import random
 import datetime
@@ -11,12 +12,12 @@ import traceback
 import ctypes
 from pathlib import Path
 
-
-
 # region 未分类
 
 __to_变量名__pattren = re.compile(r'[\W+\w+]*?to_变量名\((\w+)\)')
 __to_变量名__变量名集 = []
+
+
 def to_变量名(变量):
     global __to_变量名__变量名集
     if not __to_变量名__变量名集:
@@ -32,7 +33,6 @@ def change_locals(frame, 修改表={}):
     )
 
 
-
 def gen_md5(data):
     md5 = hashlib.md5()
     if repr(type(data)) == "<class 'str'>":
@@ -42,7 +42,7 @@ def gen_md5(data):
 
 
 # 文件名添加数字后缀以避免重名
-def  文件名防重_追加数字(filename, base_dir = "", is_中间加斜杠 = False, is_数字前加下划线 = True, 后缀数字 = 2, 步长=1):
+def 文件名防重_追加数字(filename, base_dir="", is_中间加斜杠=False, is_数字前加下划线=True, 后缀数字=2, 步长=1):
     if is_中间加斜杠:
         base_dir = base_dir + "/"
     输出文件 = base_dir + filename
@@ -77,7 +77,7 @@ def getDictValue(my_dict, key="", default=None, 分隔符="."):
         end_index = len(key) - 1
         if key[0] == 分隔符: start_index += 1
         if key[end_index] == 分隔符: end_index -= 1
-        key = key[start_index:end_index+1]
+        key = key[start_index:end_index + 1]
         keys = key.split(分隔符)
         for key in keys:
             if isinstance(my_dict, list):
@@ -90,11 +90,11 @@ def getDictValue(my_dict, key="", default=None, 分隔符="."):
 
 
 # 设置多层dict的值
-def setDictValue(mydict,key,value,分隔符='.'):
+def setDictValue(mydict, key, value, 分隔符='.'):
     keys = key.split(分隔符)
     length = len(keys)
-    for index,i in enumerate(key.split(分隔符)):
-        if int(index)+1 == length:
+    for index, i in enumerate(key.split(分隔符)):
+        if int(index) + 1 == length:
             if isinstance(mydict, list):
                 mydict[int(i)] = value
             else:
@@ -112,7 +112,7 @@ def getCurrentDatetime_str(format_str="%Y-%m-%d %H:%M:%S"):
 
 
 # 递归获取 指定目录下，拥有指定后缀，的文件路径
-def getDeepFilePaths(baseFilePath, ext="txt", is_deep = True, rst_filePaths=[]):
+def getDeepFilePaths(baseFilePath, ext="txt", is_deep=True, rst_filePaths=[]):
     if not baseFilePath:
         baseFilePath = "."
     # 处理ext后缀
@@ -134,13 +134,13 @@ def getDeepFilePaths(baseFilePath, ext="txt", is_deep = True, rst_filePaths=[]):
 
     # 获取当前目录下的所有文件名
     f_list = stream(os.listdir(baseFilePath)) \
-                .map(lambda fileName: f"{baseFilePath}/{fileName}") \
-                .collect()
+        .map(lambda fileName: f"{baseFilePath}/{fileName}") \
+        .collect()
 
     if is_all_ext:
         rst_filePaths += stream(f_list) \
-                            .filter(lambda f: not os.path.isdir(f)) \
-                            .collect()
+            .filter(lambda f: not os.path.isdir(f)) \
+            .collect()
     else:
         # 将当前目录下后缀名为指定后缀的文件，放入rst_filePaths列表
         stream(f_list) \
@@ -157,6 +157,22 @@ def getDeepFilePaths(baseFilePath, ext="txt", is_deep = True, rst_filePaths=[]):
     return rst_filePaths
 
 
+def getAllFilePaths(baseFilePath, is_deep=True, rst_filePaths=[]):
+    if not baseFilePath:
+        baseFilePath = "."
+    # 获取当前目录下的所有文件名
+    f_list = stream(ls(baseFilePath, 选项="", 要包含前缀=True)) \
+        .collect()
+    rst_filePaths += f_list
+    # 递归当前目录下的目录
+    if is_deep:
+        stream(f_list) \
+            .filter(lambda f: isdir(f)) \
+            .forEach(lambda dir: getAllFilePaths(dir, True, rst_filePaths))
+
+    return rst_filePaths
+
+
 # endregion 未分类
 
 
@@ -164,6 +180,7 @@ def getDeepFilePaths(baseFilePath, ext="txt", is_deep = True, rst_filePaths=[]):
 
 def exist(文件全路径):
     return os.path.exists(文件全路径)
+
 
 def isdir(文件全路径):
     if exist(文件全路径):
@@ -175,22 +192,24 @@ def isdir(文件全路径):
         else:
             return False
 
+
 def ls(文件全路径, 选项="", 要包含前缀=False):
     选项 = 选项.lower()
     if exist(文件全路径):
         if isdir(文件全路径):
             if ("p" in 选项) or ("r" in 选项):
-                return getDeepFilePaths(文件全路径, "*")
+                return getAllFilePaths(文件全路径)
             else:
                 if 要包含前缀:
-                    return stream(os.listdir(文件全路径))\
-                            .map(lambda i: f"{文件全路径}/{i}").collect()
+                    return stream(os.listdir(文件全路径)) \
+                        .map(lambda i: os.path.join(文件全路径, i)).collect()
                 else:
                     return os.listdir(文件全路径)
         else:
             return [文件全路径];
     else:
         return []
+
 
 def mkdir(文件全路径, 选项="-p"):
     选项 = 选项.lower()
@@ -199,6 +218,7 @@ def mkdir(文件全路径, 选项="-p"):
             os.makedirs(文件全路径)
         else:
             os.mkdir(文件全路径)
+
 
 def mk(文件全路径, 选项="-p", 要删除旧文件=False):
     选项 = 选项.lower()
@@ -214,8 +234,9 @@ def mk(文件全路径, 选项="-p", 要删除旧文件=False):
         所在目录 = get文件所在目录(文件全路径)
         if 所在目录 and (not exist(所在目录)):
             mk(所在目录, 选项)
-        with open(文件全路径,"a"):
+        with open(文件全路径, "a"):
             pass
+
 
 def rm(文件全路径, 选项="-rf"):
     if exist(文件全路径):
@@ -231,20 +252,26 @@ def rm(文件全路径, 选项="-rf"):
         else:
             os.remove(文件全路径)
 
+
 def get文件后缀(文件全路径):
     return os.path.splitext(文件全路径)[1]
+
 
 def get文件名(文件全路径):
     return os.path.basename(文件全路径)
 
+
 def get文件所在目录(文件全路径):
     return os.path.dirname(文件全路径)
+
 
 def basename(文件全路径):
     return get文件名(文件全路径)
 
+
 def dirname(文件全路径):
     return get文件所在目录(文件全路径)
+
 
 def cp(旧文件, 新文件, 要删除旧文件=False):
     旧文件类型 = "dir" if isdir(旧文件) else "file"
@@ -258,7 +285,7 @@ def cp(旧文件, 新文件, 要删除旧文件=False):
     def file_dir():
         if not exist(新文件):
             mk(新文件)
-        shutil.copy(旧文件,新文件)
+        shutil.copy(旧文件, 新文件)
 
     def dir_file():
         if not exist(新文件):
@@ -306,6 +333,7 @@ _oracle_conf = {
     "db": "orcl"
 }
 
+
 def _get_oracle_conf(new_conf={}):
     conf = {}
     conf["host"] = new_conf.get("host", _oracle_conf["host"])
@@ -314,6 +342,7 @@ def _get_oracle_conf(new_conf={}):
     conf["password"] = new_conf.get("password", _oracle_conf["password"])
     conf["db"] = new_conf.get("db", _oracle_conf["db"])
     return f'{conf["user"]}/{conf["password"]}@{conf["host"]}:{conf["port"]}/{conf["db"]}'
+
 
 class Oracle:
     def __init__(self, conf=_get_oracle_conf()):
@@ -398,6 +427,7 @@ class Oracle:
             lines.append(r_dict)
         return lines
 
+
 def oracle(new_conf={}):
     return Oracle.实例化(new_conf)
 
@@ -416,6 +446,7 @@ _mysql_conf = {
     "charset": "utf8"
 }
 
+
 def _get_mysql_conf(new_conf={}):
     # if not new_conf:
     #     return copy.deepcopy(_mysql_conf)
@@ -427,6 +458,7 @@ def _get_mysql_conf(new_conf={}):
     conf["db"] = new_conf.get("db", _mysql_conf["db"])
     conf["charset"] = new_conf.get("charset", _mysql_conf["charset"])
     return conf
+
 
 class Mysql:
     def __init__(self, conf=_mysql_conf):
@@ -501,6 +533,7 @@ class Mysql:
             lines.append(r_dict)
         return lines
 
+
 def mysql(new_conf={}):
     return Mysql.实例化(new_conf)
 
@@ -513,6 +546,7 @@ def mysql(new_conf={}):
 
 # region 配置相关
 import configparser
+
 
 def _configparser_to_dict(config):
     my_dict = dict(config._sections)
@@ -549,14 +583,14 @@ class 配置类:
                     raise Exception("配置加载失败，来源不支持")
             else:
                 config = configparser.ConfigParser()
-                config.read(路径,encoding='UTF-8')
+                config.read(路径, encoding='UTF-8')
                 dict配置 = _configparser_to_dict(config)
         except:
             dict配置 = {}
 
         return dict配置
 
-    def _设置数据源(self,路径,类型,来源):
+    def _设置数据源(self, 路径, 类型, 来源):
         self.数据源["路径"] = 路径
         self.数据源["类型"] = 类型.lower()
         self.数据源["来源"] = 来源.lower()
@@ -576,51 +610,49 @@ class 配置类:
 
         return rstList
 
-
-    def 加载(self,路径="./配置文件.json",类型="auto",来源="filesystem"):
-        self.配置 = self._设置数据源(路径,类型,来源)._数据源转dict()
+    def 加载(self, 路径="./配置文件.json", 类型="auto", 来源="filesystem"):
+        self.配置 = self._设置数据源(路径, 类型, 来源)._数据源转dict()
         return self
 
-    def 取值(self, key = "", 分隔符 = "."):
+    def 取值(self, key="", 分隔符="."):
         return getDictValue(self.配置, key, 分隔符)
 
-    def 关联(self, 变量集, 关联表 = {}, 分隔符="."):
+    def 关联(self, 变量集, 关联表={}, 分隔符="."):
         if not 关联表:
             关联表 = {}
-            keyLocation = self._get_dict_keyLocation_list(变量集,分隔符=分隔符)
+            keyLocation = self._get_dict_keyLocation_list(变量集, 分隔符=分隔符)
             for i in keyLocation:
                 关联表[i] = i
         self.变量集 = 变量集
         self.关联表 = 关联表
         return self
 
-    def 重载(self, 分隔符 = ".", is_override_vars = True):
+    def 重载(self, 分隔符=".", is_override_vars=True):
         # 加载配置
         self.配置 = self._数据源转dict()
 
         if is_override_vars:
             # 覆写变量
             for key in self.关联表.keys():
-                old_value = getDictValue(self.变量集,key,分隔符=分隔符)
-                now_value = getDictValue(self.配置, self.关联表.get(key), old_value , 分隔符)
-                setDictValue(self.变量集,key,now_value)
+                old_value = getDictValue(self.变量集, key, 分隔符=分隔符)
+                now_value = getDictValue(self.配置, self.关联表.get(key), old_value, 分隔符)
+                setDictValue(self.变量集, key, now_value)
 
         return self
 
+    def set(self, 路径="./配置文件.json", 类型="auto", 来源="filesystem"):
+        return self.加载(路径, 类型, 来源)
 
-    def set(self,路径="./配置文件.json",类型="auto",来源="filesystem"):
-        return self.加载(路径,类型,来源)
-
-    def get(self, key = "", 分隔符 = "."):
+    def get(self, key="", 分隔符="."):
         return self.取值(key, 分隔符)
 
-    def link(self, 变量集, 关联表 = {}, 分隔符="."):
+    def link(self, 变量集, 关联表={}, 分隔符="."):
         return self.关联(变量集, 关联表, 分隔符=分隔符)
 
-    def reload(self, 分隔符 = ".", is_override_vars = True):
+    def reload(self, 分隔符=".", is_override_vars=True):
         return self.重载(分隔符, is_override_vars)
 
-    def export(self, is_del_before = False, vars ={}):
+    def export(self, is_del_before=False, vars={}):
         config_filePath = self.数据源["路径"]
         is_file_exist = os.path.exists(config_filePath)
 
@@ -634,7 +666,7 @@ class 配置类:
         if 所在目录:
             if not os.path.exists(所在目录):
                 os.makedirs(所在目录)
-                
+
         if not vars:
             vars = self.变量集
         with open(config_filePath, 'w', encoding='utf-8') as f:
@@ -642,10 +674,10 @@ class 配置类:
 
         return self
 
-
-    def all(self, 配置文件路径, 变量集, 类型="auto", 来源="filesystem", 关联表 = {}, 分隔符 = ".", is_del_before = False, export_vars = {}, is_override_vars = True):
-        return self.set(配置文件路径,类型,来源).link(变量集,关联表,分隔符=分隔符).export(is_del_before,export_vars).reload(分隔符, is_override_vars)
-
+    def all(self, 配置文件路径, 变量集, 类型="auto", 来源="filesystem", 关联表={}, 分隔符=".", is_del_before=False, export_vars={},
+            is_override_vars=True):
+        return self.set(配置文件路径, 类型, 来源).link(变量集, 关联表, 分隔符=分隔符).export(is_del_before, export_vars).reload(分隔符,
+                                                                                                          is_override_vars)
 
 
 配置 = 配置类.实例化()
@@ -775,6 +807,8 @@ def 拆解秒数(秒数, 各时间单位值字典={}):
         除余结果 = divmod(秒数, _毫秒_秒数)
         各时间单位值字典["毫秒"] = int(除余结果[0])
         return "%d 毫秒" % int(除余结果[0])
+
+
 # endregion
 
 class 计时工具:
@@ -805,17 +839,21 @@ class 计时工具:
         def __str__(self):
             return self.可视化时间()
 
-    def __init__(self):
+    def __init__(self, 数组型打点上限=150, 删除区间=[5, -5]):
         self.默认打点数组 = []
         self.个性打点字典 = {}
         self.时间值存储实例 = 计时工具.时间值存储类.实例化()
+        self.数组型打点上限 = 数组型打点上限
+        self.删除区间 = 删除区间
 
     @staticmethod
-    def 实例化():
-        return 计时工具()
+    def 实例化(数组型打点上限=150, 删除区间=[5, -5]):
+        return 计时工具(数组型打点上限, 删除区间)
 
     def 打点(self, 计时点名称=None):
         计时点 = time.time()
+        if len(self.默认打点数组) > self.数组型打点上限:
+            self.默认打点数组 = self.默认打点数组[0:self.删除区间[0]] + self.默认打点数组[self.删除区间[1]:]
         self.默认打点数组.append(计时点)
         if 计时点名称:
             计时点名称 = str(计时点名称)
