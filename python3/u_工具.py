@@ -14,10 +14,41 @@ from pathlib import Path
 
 # region 未分类
 
+def 每x行取第y行_生成器(x,y):
+    行数 = -1 - (y - 1)
+    while True:
+        行数 += 1
+        if 行数 % x == 0:
+            yield True
+        else:
+            yield False
+
+def 每x行取任意行_生成器(x, *args):
+    行数 = -1
+    while True:
+        行数 += 1
+        余数 = 行数 % x
+        if (余数+1) in args:
+            yield True
+        else:
+            yield False
+
+def x分钟前的unix(minutes=30):
+    return time.mktime((datetime.datetime.now() - datetime.timedelta(minutes=minutes)).timetuple())
+
+def to_md5(data):
+    type_str = repr(type(data))
+    if type_str != "<class 'bytes'>" and type_str != "<class 'str'>":
+        data = json.dumps(data)
+    if repr(type(data)) == "<class 'str'>":
+        data = data.encode('utf-8')
+    md5 = hashlib.md5()
+    md5.update(data)
+    return md5.hexdigest()
+
+
 __to_变量名__pattren = re.compile(r'[\W+\w+]*?to_变量名\((\w+)\)')
 __to_变量名__变量名集 = []
-
-
 def to_变量名(变量):
     global __to_变量名__变量名集
     if not __to_变量名__变量名集:
@@ -31,14 +62,6 @@ def change_locals(frame, 修改表={}):
         ctypes.py_object(frame),
         ctypes.c_int(0)
     )
-
-
-def gen_md5(data):
-    md5 = hashlib.md5()
-    if repr(type(data)) == "<class 'str'>":
-        data = data.encode('utf-8')
-    md5.update(data)
-    return md5.hexdigest()
 
 
 # 文件名添加数字后缀以避免重名
