@@ -38,15 +38,12 @@ def x分钟后的unix(minutes=30):
 def x分钟前的unix(minutes=30):
     return time.mktime((datetime.datetime.now() - datetime.timedelta(minutes=minutes)).timetuple())
 
-
-
 def change_locals(frame, 修改表={}):
     frame.f_locals.update(修改表)
     ctypes.pythonapi.PyFrame_LocalsToFast(
         ctypes.py_object(frame),
         ctypes.c_int(0)
     )
-
 
 # 文件名添加数字后缀以避免重名
 def 文件名防重_追加数字(filename, base_dir = "", is_中间加斜杠 = False, is_数字前加下划线 = True, 后缀数字 = 2, 步长=1):
@@ -70,13 +67,9 @@ def 文件名防重_追加数字(filename, base_dir = "", is_中间加斜杠 = F
     else:
         return 输出文件
 
-
-
-
 # 获取当前时间的字符串
 def getCurrentDatetime_str(format_str="%Y-%m-%d %H:%M:%S"):
     return datetime.datetime.now().strftime(format_str)
-
 
 
 # endregion 未分类
