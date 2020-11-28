@@ -14,7 +14,7 @@ from pathlib import Path
 
 # region 未分类
 
-def 每x行取第y行_生成器定义(x,y):
+def 每x行取第y行_生成器(x,y):
     行数 = -1 - (y - 1)
     while True:
         行数 += 1
@@ -23,7 +23,7 @@ def 每x行取第y行_生成器定义(x,y):
         else:
             yield False
 
-def 每x行取任意行_生成器定义(x, *args):
+def 每x行取任意行_生成器(x, *args):
     行数 = -1
     while True:
         行数 += 1
