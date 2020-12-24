@@ -11,6 +11,7 @@ import re
 import traceback
 import ctypes
 from pathlib import Path
+import uuid
 
 # region 未分类
 
