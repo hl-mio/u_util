@@ -34,13 +34,13 @@ def to_变量名(变量):
         __to_变量名__变量名集 = __to_变量名__pattren.findall(traceback.extract_stack(limit=2)[0][3])
     return __to_变量名__变量名集.pop(0)
 
-def to_str(obj):
+def to_json_str(obj):
     return json.dumps(obj)
 
-def to_file(obj, 文件对象, ensure_ascii=False, indent=2):
+def to_json_file(obj, 文件对象, ensure_ascii=False, indent=2):
     return json.dump(obj, 文件对象, ensure_ascii=ensure_ascii, indent=indent)
 
-def to_dict(字符串or文件对象):
+def to_json_obj(字符串or文件对象):
     def from_str_to_dict():
         return json.loads(字符串or文件对象)
 
