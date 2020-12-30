@@ -920,13 +920,12 @@ def delay_between_x_y_s(start_delay_num, end_delay_num):
 
 
 def delay_x_s(固定延时几秒):
-    x = float(固定延时几秒)
-    delay_x_0_s(x)
-    
-def delay_y_s(随机延时0到几秒):
-    y = float(随机延时0到几秒)
-    delay_0_y_s(y)
+    delay_x_0_s(固定延时几秒)
 
+def delay_y_s(随机延时0到几秒):
+    delay_0_y_s(随机延时0到几秒)
+
+    
 # endregion 随机延时
 
 
