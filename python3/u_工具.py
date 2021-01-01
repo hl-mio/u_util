@@ -15,6 +15,23 @@ import uuid
 
 # region 未分类
 
+def 整分钟数的当前时间(整多少分钟=30):
+    return 整分钟数的指定时间(整多少分钟=整多少分钟)
+
+def 整分钟数的指定时间(指定的时间=None, 整多少分钟=30):
+    分钟间隔 = 整多少分钟
+    if not 指定的时间:
+        指定的时间 = to_now_datetime()
+    else:
+        指定的时间 = to_datetime(指定的时间)
+    当前整点时间 = 指定的时间.replace(minute=0, second=0, microsecond=0)
+    当前整点时间_加一小时 = to_datetime(当前整点时间, 增加几小时=1)
+    拿来比较的时间 = 当前整点时间_加一小时
+    while 拿来比较的时间 >= 当前整点时间:
+        拿来比较的时间 = to_datetime(拿来比较的时间, 增加几分钟= -分钟间隔)
+        if 指定的时间 >= 拿来比较的时间:
+            return 拿来比较的时间
+
 def 每x行取第y行_生成器(x,y):
     行数 = -1 - (y - 1)
     while True:
