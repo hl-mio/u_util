@@ -13,6 +13,197 @@ import ctypes
 from pathlib import Path
 import uuid
 
+
+
+# region 未分类
+
+__lock_print=threading.Lock()
+def print_加锁(*args, **kwargs):
+    with __lock_print:
+        print(*args,**kwargs)
+
+def 打点计时(x=None, y=None):  # 这里的参数，是给装饰器的参数；比如 @打点计时(123,"abc")
+    # region 装饰器的初始化区：（1）装饰了别人才会执行 （2）有几个@，就执行几次
+    # print(x,y)  # x,y在下面两个region里也可以用
+    # endregion
+
+    def wrap(func):
+        @wraps(func)  # 复制原始函数信息，并保留下来
+        def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
+
+            # region 执行原始函数前
+            计时器 = 计时工具.实例化()
+            计时器.打点()
+            # endregion
+
+            rst = func(*args, **kwargs)  # 执行原始函数
+
+            # region 执行原始函数后
+            计时器.打点()
+            print(f'''{func.__name__}: {计时器.计时()}''')
+            # endregion
+
+            return rst
+
+        return inner
+
+    return wrap
+
+# endregion
+
+
+
+
+# region 线程
+
+__线程池_装饰专用 = futures.ThreadPoolExecutor(12)
+
+def 线程模式(返回句柄=True):  # 这里的参数，是给装饰器的参数
+    # region 装饰器的初始化区
+    # endregion
+
+    def wrap(func):
+        @wraps(func)  # 复制原始函数信息，并保留下来
+        def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
+
+            # region 执行原始函数前
+            # endregion
+
+            rst = __线程池_装饰专用.submit(func, *args, **kwargs)  # 执行原始函数
+
+            # region 执行原始函数后
+            # endregion
+
+            if not 返回句柄:
+                rst = rst.result()
+            return rst
+
+        return inner
+
+    return wrap
+
+
+def 线程模式_无参数(func):
+    @wraps(func)  # 复制原始函数信息，并保留下来
+    def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
+
+        # region 执行原始函数前
+        # endregion
+
+        rst = __线程池_装饰专用.submit(func, *args, **kwargs)  # 执行原始函数
+
+        # region 执行原始函数后
+        # endregion
+
+        return rst
+
+    return inner
+
+# endregion
+
+
+
+
+# region 定时任务
+
+__executors = {
+    'default': ThreadPoolExecutor(20), #线程池
+    'processpool': ProcessPoolExecutor(5) #进程池
+}
+
+__job_defaults = {
+    'coalesce': True,   # 当有任务中途中断，后面恢复后，有N个任务没有执行 coalesce：true ，恢复的任务会执行一次  coalesce：false，恢复后的任务会执行N次配合misfire_grace_time使用
+    'max_instances': 1,     # 同一任务的运行实例个数
+    'misfire_grace_time': 60 # misfire_grace_time设置时间差值，由于某些原因没有运行，再次提交时，大于设置的时间，实例不会运行
+}
+
+_scheduler = BackgroundScheduler(executors=__executors, job_defaults=__job_defaults, timezone=pytz.timezone('Asia/Shanghai'))
+
+_定时任务列表 = []
+
+def 定时任务_注册(触发器类型='interval', id=None, 首次是否执行=True, *任务args, **任务kwargs):  # 这里的参数，是给装饰器的参数
+    # region 装饰器的初始化区：（1）装饰了别人才会执行 （2）有几个@，就执行几次
+    # endregion
+
+    def wrap(func):
+        @wraps(func)  # 复制原始函数信息，并保留下来
+        def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
+
+            # region 执行原始函数前
+            注册定时任务(func,触发器类型,args,kwargs,id,*任务args,**任务kwargs)
+            # endregion
+
+            if 首次是否执行:
+                func(*args, **kwargs)
+
+            # region 执行原始函数后
+            # endregion
+
+        return inner
+
+    return wrap
+
+def 定时任务_启动():  # 这里的参数，是给装饰器的参数
+    # region 装饰器的初始化区：（1）装饰了别人才会执行 （2）有几个@，就执行几次
+    # endregion
+
+    def wrap(func):
+        @wraps(func)  # 复制原始函数信息，并保留下来
+        def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
+
+            # region 执行原始函数前
+            启动定时任务()
+            # endregion
+
+            func(*args, **kwargs)  # 执行原始函数
+
+            # region 执行原始函数后
+            # endregion
+
+        return inner
+
+    return wrap
+
+def 注册定时任务(func,触发器类型,args,kwargs,id,*任务args,**任务kwargs):
+    新任务 = {}
+    新任务["任务"] = func
+    新任务["触发器类型"] = 触发器类型
+    新任务["原始函数args"] = args
+    新任务["原始函数kwargs"] = kwargs
+    新任务["id"] = id
+    新任务["任务args"] = 任务args
+    新任务["任务kwargs"] = 任务kwargs
+    global _定时任务列表
+    _定时任务列表.append(新任务)
+
+def 启动定时任务():
+    global _scheduler
+    for i in _定时任务列表:
+        _scheduler.add_job(i["任务"], i["触发器类型"], i["原始函数args"], i["原始函数kwargs"], i["id"], *i["任务args"], **i["任务kwargs"])
+    _scheduler.start()
+
+
+@定时任务_启动()
+def 开始定时任务():
+    计时器 = 计时工具.实例化()
+    计时器.打点()
+    print_加锁("开始")
+
+    i = 0
+    while True:
+        time.sleep(1)
+        计时器.打点()
+        print_加锁(计时器.计时(0))
+        # time.sleep(1*60*60)
+        i+=1
+        if(i==7):
+            exit()
+
+
+# endregion
+
+
+
 # region 未分类
 
 def 整分钟数的当前时间(整多少分钟=30):
