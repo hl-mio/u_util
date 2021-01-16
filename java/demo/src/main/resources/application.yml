@@ -1,0 +1,9 @@
+spring:
+  # -- 加载其他模块下的配置 逗号分隔
+  # 优先级 （1）include > 本页面   （2）include后面的 > include前面的
+  profiles:
+    include: conf
+
+  jackson:
+    date-format: yyyy-MM-dd HH:mm:ss
+    time-zone: GMT+8
