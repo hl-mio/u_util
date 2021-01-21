@@ -7,223 +7,24 @@ import time
 import datetime
 import random
 import threading
+import uuid
 import re
 import traceback
 import ctypes
 from pathlib import Path
-import uuid
-
-
+from concurrent import futures
+from functools import wraps
 
 # region 未分类
 
-__lock_print=threading.Lock()
+__lock_print = threading.Lock()
+
 def print_加锁(*args, **kwargs):
     with __lock_print:
-        print(*args,**kwargs)
+        print(*args, **kwargs)
 
-def 打点计时(x=None, y=None):  # 这里的参数，是给装饰器的参数；比如 @打点计时(123,"abc")
-    # region 装饰器的初始化区：（1）装饰了别人才会执行 （2）有几个@，就执行几次
-    # print(x,y)  # x,y在下面两个region里也可以用
-    # endregion
 
-    def wrap(func):
-        @wraps(func)  # 复制原始函数信息，并保留下来
-        def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
-
-            # region 执行原始函数前
-            计时器 = 计时工具.实例化()
-            计时器.打点()
-            # endregion
-
-            rst = func(*args, **kwargs)  # 执行原始函数
-
-            # region 执行原始函数后
-            计时器.打点()
-            print(f'''{func.__name__}: {计时器.计时()}''')
-            # endregion
-
-            return rst
-
-        return inner
-
-    return wrap
-
-# endregion
-
-
-
-
-# region 线程
-
-__线程池_装饰专用 = futures.ThreadPoolExecutor(12)
-
-def 线程模式(返回句柄=True):  # 这里的参数，是给装饰器的参数
-    # region 装饰器的初始化区
-    # endregion
-
-    def wrap(func):
-        @wraps(func)  # 复制原始函数信息，并保留下来
-        def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
-
-            # region 执行原始函数前
-            # endregion
-
-            rst = __线程池_装饰专用.submit(func, *args, **kwargs)  # 执行原始函数
-
-            # region 执行原始函数后
-            # endregion
-
-            if not 返回句柄:
-                rst = rst.result()
-            return rst
-
-        return inner
-
-    return wrap
-
-
-def 线程模式_无参数(func):
-    @wraps(func)  # 复制原始函数信息，并保留下来
-    def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
-
-        # region 执行原始函数前
-        # endregion
-
-        rst = __线程池_装饰专用.submit(func, *args, **kwargs)  # 执行原始函数
-
-        # region 执行原始函数后
-        # endregion
-
-        return rst
-
-    return inner
-
-# endregion
-
-
-
-
-# region 定时任务
-
-__executors = {
-    'default': ThreadPoolExecutor(20), #线程池
-    'processpool': ProcessPoolExecutor(5) #进程池
-}
-
-__job_defaults = {
-    'coalesce': True,   # 当有任务中途中断，后面恢复后，有N个任务没有执行 coalesce：true ，恢复的任务会执行一次  coalesce：false，恢复后的任务会执行N次配合misfire_grace_time使用
-    'max_instances': 1,     # 同一任务的运行实例个数
-    'misfire_grace_time': 60 # misfire_grace_time设置时间差值，由于某些原因没有运行，再次提交时，大于设置的时间，实例不会运行
-}
-
-_scheduler = BackgroundScheduler(executors=__executors, job_defaults=__job_defaults, timezone=pytz.timezone('Asia/Shanghai'))
-
-_定时任务列表 = []
-
-def 定时任务_注册(触发器类型='interval', id=None, 首次是否执行=True, *任务args, **任务kwargs):  # 这里的参数，是给装饰器的参数
-    # region 装饰器的初始化区：（1）装饰了别人才会执行 （2）有几个@，就执行几次
-    # endregion
-
-    def wrap(func):
-        @wraps(func)  # 复制原始函数信息，并保留下来
-        def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
-
-            # region 执行原始函数前
-            注册定时任务(func,触发器类型,args,kwargs,id,*任务args,**任务kwargs)
-            # endregion
-
-            if 首次是否执行:
-                func(*args, **kwargs)
-
-            # region 执行原始函数后
-            # endregion
-
-        return inner
-
-    return wrap
-
-def 定时任务_启动():  # 这里的参数，是给装饰器的参数
-    # region 装饰器的初始化区：（1）装饰了别人才会执行 （2）有几个@，就执行几次
-    # endregion
-
-    def wrap(func):
-        @wraps(func)  # 复制原始函数信息，并保留下来
-        def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
-
-            # region 执行原始函数前
-            启动定时任务()
-            # endregion
-
-            func(*args, **kwargs)  # 执行原始函数
-
-            # region 执行原始函数后
-            # endregion
-
-        return inner
-
-    return wrap
-
-def 注册定时任务(func,触发器类型,args,kwargs,id,*任务args,**任务kwargs):
-    新任务 = {}
-    新任务["任务"] = func
-    新任务["触发器类型"] = 触发器类型
-    新任务["原始函数args"] = args
-    新任务["原始函数kwargs"] = kwargs
-    新任务["id"] = id
-    新任务["任务args"] = 任务args
-    新任务["任务kwargs"] = 任务kwargs
-    global _定时任务列表
-    _定时任务列表.append(新任务)
-
-def 启动定时任务():
-    global _scheduler
-    for i in _定时任务列表:
-        _scheduler.add_job(i["任务"], i["触发器类型"], i["原始函数args"], i["原始函数kwargs"], i["id"], *i["任务args"], **i["任务kwargs"])
-    _scheduler.start()
-
-
-@定时任务_启动()
-def 开始定时任务():
-    计时器 = 计时工具.实例化()
-    计时器.打点()
-    print_加锁("开始")
-
-    i = 0
-    while True:
-        time.sleep(1)
-        计时器.打点()
-        print_加锁(计时器.计时(0))
-        # time.sleep(1*60*60)
-        i+=1
-        if(i==7):
-            exit()
-
-
-# endregion
-
-
-
-# region 未分类
-
-def 整分钟数的当前时间(整多少分钟=30):
-    return 整分钟数的指定时间(整多少分钟=整多少分钟)
-
-def 整分钟数的指定时间(指定的时间=None, 整多少分钟=30):
-    分钟间隔 = 整多少分钟
-    if not 指定的时间:
-        指定的时间 = to_now_datetime()
-    else:
-        指定的时间 = to_datetime(指定的时间)
-    当前整点时间 = 指定的时间.replace(minute=0, second=0, microsecond=0)
-    当前整点时间_加一小时 = to_datetime(当前整点时间, 增加几小时=1)
-    拿来比较的时间 = 当前整点时间_加一小时
-    while 拿来比较的时间 >= 当前整点时间:
-        拿来比较的时间 = to_datetime(拿来比较的时间, 增加几分钟= -分钟间隔)
-        if 指定的时间 >= 拿来比较的时间:
-            return 拿来比较的时间
-
-def 每x行取第y行_生成器(x,y):
+def 每x行取第y行_生成器(x, y):
     行数 = -1 - (y - 1)
     while True:
         行数 += 1
@@ -237,7 +38,7 @@ def 每x行取任意行_生成器(x, *args):
     while True:
         行数 += 1
         余数 = 行数 % x
-        if (余数+1) in args:
+        if (余数 + 1) in args:
             yield True
         else:
             yield False
@@ -248,7 +49,6 @@ def change_locals(frame, 修改表={}):
         ctypes.py_object(frame),
         ctypes.c_int(0)
     )
-
 
 # 文件名添加数字后缀以避免重名
 def 文件名防重_追加数字(filename, base_dir="", is_中间加斜杠=False, is_数字前加下划线=True, 后缀数字=2, 步长=1):
@@ -272,131 +72,191 @@ def 文件名防重_追加数字(filename, base_dir="", is_中间加斜杠=False
     else:
         return 输出文件
 
-
-# 获取多层dict的值
-def getDictValue(my_dict, key="", default=None, 分隔符="."):
-    if not key:
-        if default:
-            return default
-        else:
-            return my_dict
-
-    try:
-        start_index = 0
-        end_index = len(key) - 1
-        if key[0] == 分隔符: start_index += 1
-        if key[end_index] == 分隔符: end_index -= 1
-        key = key[start_index:end_index + 1]
-        keys = key.split(分隔符)
-        for key in keys:
-            if isinstance(my_dict, list):
-                my_dict = my_dict[int(key)]
-            else:
-                my_dict = my_dict[key]
-        return my_dict
-    except:
-        return default
-
-
-# 设置多层dict的值
-def setDictValue(mydict, key, value, 分隔符='.'):
-    keys = key.split(分隔符)
-    length = len(keys)
-    for index, i in enumerate(key.split(分隔符)):
-        if int(index) + 1 == length:
-            if isinstance(mydict, list):
-                mydict[int(i)] = value
-            else:
-                mydict[i] = value
-        else:
-            if isinstance(mydict, list):
-                mydict = mydict[int(i)]
-            else:
-                mydict = mydict[i]
-
-
-# 获取当前时间的字符串
-def getCurrentDatetime_str(format_str="%Y-%m-%d %H:%M:%S"):
-    return datetime.datetime.now().strftime(format_str)
-
-
-# 递归获取 指定目录下，拥有指定后缀，的文件路径
-def getDeepFilePaths(baseFilePath, ext="txt", is_deep=True, rst_filePaths=[]):
-    if not baseFilePath:
-        baseFilePath = "."
-    # 处理ext后缀
-    is_all_ext = False
-    selectExt_list = []
-    if not ext:
-        selectExt_list.append("")
-    else:
-        if ext == "*":
-            is_all_ext = True
-        elif isinstance(ext, str):
-            selectExt_list.append(f".{ext}")
-        elif isinstance(ext, list):
-            selectExt_list = stream(ext).filter(lambda i: i).map(lambda i: f".{i}").collect()
-            if "" in ext:
-                selectExt_list.append("")
-        else:
-            raise Exception("ext的类型不支持")
-
-    # 获取当前目录下的所有文件名
-    f_list = stream(os.listdir(baseFilePath)) \
-        .map(lambda fileName: f"{baseFilePath}/{fileName}") \
-        .collect()
-
-    if is_all_ext:
-        rst_filePaths += stream(f_list) \
-            .filter(lambda f: not os.path.isdir(f)) \
-            .collect()
-    else:
-        # 将当前目录下后缀名为指定后缀的文件，放入rst_filePaths列表
-        stream(f_list) \
-            .filter(lambda f: not os.path.isdir(f)) \
-            .filter(lambda f: os.path.splitext(f)[1] in selectExt_list) \
-            .forEach(lambda f: rst_filePaths.append(f))
-
-    # 递归当前目录下的目录
-    if is_deep:
-        stream(f_list) \
-            .filter(lambda f: os.path.isdir(f)) \
-            .forEach(lambda dir: getDeepFilePaths(dir, ext, True, rst_filePaths))
-
-    return rst_filePaths
-
-
-def getAllFilePaths(baseFilePath, is_deep=True, rst_filePaths=[]):
-    if not baseFilePath:
-        baseFilePath = "."
-    # 获取当前目录下的所有文件名
-    f_list = stream(ls(baseFilePath, 选项="", 要包含前缀=True)) \
-        .collect()
-    rst_filePaths += f_list
-    # 递归当前目录下的目录
-    if is_deep:
-        stream(f_list) \
-            .filter(lambda f: isdir(f)) \
-            .forEach(lambda dir: getAllFilePaths(dir, True, rst_filePaths))
-
-    return rst_filePaths
-
-
 # endregion 未分类
 
 
-# region to_x
+# region 装饰器
+
+# region 计时
+def 打点计时(func):
+    @wraps(func)  # 复制原始函数信息，并保留下来
+    def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
+
+        # region 执行原始函数前
+        计时器 = 打点计时类.实例化()
+        计时器.打点()
+        # endregion
+
+        rst = func(*args, **kwargs)  # 执行原始函数
+
+        # region 执行原始函数后
+        计时器.打点()
+        print(f'''{func.__name__}: {计时器.计时()}''')
+        # endregion
+
+        return rst
+
+    return inner
+# endregion
+
+# region 线程
+
+__线程池_装饰专用 = futures.ThreadPoolExecutor(12)
+
+def 线程模式_改(返回句柄=True):  # 这里的参数，是给装饰器的参数
+    # region 装饰器的初始化区1
+    # endregion
+    def wrap(func):
+        # region 装饰器的初始化区3
+        # endregion
+        @wraps(func)  # 复制原始函数信息，并保留下来
+        def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
+
+            # region 执行原始函数前
+            # endregion
+
+            rst = __线程池_装饰专用.submit(func, *args, **kwargs)  # 执行原始函数
+
+            # region 执行原始函数后
+            if not 返回句柄:
+                rst = rst.result()
+            # endregion
+
+            return rst
+        # region 装饰器的初始化区4
+        # endregion
+        return inner
+    # region 装饰器的初始化区2
+    # endregion
+    return wrap
+
+
+def 线程模式(func):
+    # region 装饰器的初始化区3
+    # endregion
+    @wraps(func)  # 复制原始函数信息，并保留下来
+    def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
+
+        # region 执行原始函数前
+        # endregion
+
+        rst = __线程池_装饰专用.submit(func, *args, **kwargs)  # 执行原始函数
+
+        # region 执行原始函数后
+        # endregion
+
+        return rst
+    # region 装饰器的初始化区4
+    # endregion
+    return inner
+
+# endregion
+
+# region 定时任务
+
+_scheduler = None
+_定时任务列表 = []
+
+
+def 定时任务_注册(触发器类型='interval', id=None, 首次是否执行=True, *任务args, **任务kwargs):  # 这里的参数，是给装饰器的参数
+    # region 装饰器的初始化区：（1）装饰了别人才会执行 （2）有几个@，就执行几次
+    # endregion
+
+    def wrap(func):
+        @wraps(func)  # 复制原始函数信息，并保留下来
+        def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
+
+            # region 执行原始函数前
+            注册定时任务(func, 触发器类型, args, kwargs, id, *任务args, **任务kwargs)
+            # endregion
+
+            if 首次是否执行:
+                func(*args, **kwargs)
+
+            # region 执行原始函数后
+            # endregion
+
+        return inner
+
+    return wrap
+
+
+def 定时任务_启动():  # 这里的参数，是给装饰器的参数
+    # region 装饰器的初始化区：（1）装饰了别人才会执行 （2）有几个@，就执行几次
+    # endregion
+
+    def wrap(func):
+        @wraps(func)  # 复制原始函数信息，并保留下来
+        def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
+
+            # region 执行原始函数前
+            启动定时任务()
+            # endregion
+
+            func(*args, **kwargs)  # 执行原始函数
+
+            # region 执行原始函数后
+            # endregion
+
+        return inner
+
+    return wrap
+
+
+def 注册定时任务(func, 触发器类型, args, kwargs, id, *任务args, **任务kwargs):
+    新任务 = {}
+    新任务["任务"] = func
+    新任务["触发器类型"] = 触发器类型
+    新任务["原始函数args"] = args
+    新任务["原始函数kwargs"] = kwargs
+    新任务["id"] = id
+    新任务["任务args"] = 任务args
+    新任务["任务kwargs"] = 任务kwargs
+    global _定时任务列表
+    _定时任务列表.append(新任务)
+
+
+def 启动定时任务():
+    __executors = {
+        'default': ThreadPoolExecutor(20),  # 线程池
+        'processpool': ProcessPoolExecutor(5)  # 进程池
+    }
+    __job_defaults = {
+        'coalesce': True,  # 当有任务中途中断，后面恢复后，有N个任务没有执行 coalesce：true ，恢复的任务会执行一次  coalesce：false，恢复后的任务会执行N次配合misfire_grace_time使用
+        'max_instances': 1,  # 同一任务的运行实例个数
+        'misfire_grace_time': 60  # 超时间隔，超过了就弃掉任务
+    }
+    global _scheduler
+    _scheduler = BackgroundScheduler(executors=__executors, job_defaults=__job_defaults,
+                                     timezone=pytz.timezone('Asia/Shanghai'))
+    for i in _定时任务列表:
+        _scheduler.add_job(i["任务"], i["触发器类型"], i["原始函数args"], i["原始函数kwargs"], i["id"], *i["任务args"], **i["任务kwargs"])
+    _scheduler.start()
+
+
+@定时任务_启动()
+def 启动定时任务_阻塞主线程():
+    while True:
+        time.sleep(60*60*1)
+
+# endregion
+
+# endregion
+
+
+# region to_xxx
 
 # region time  -- datetime.datetime是原点，是核心中间类
 
 时间字符串_模板 = "%Y-%m-%d %H:%M:%S"
-def to_datetime(字符串or时间戳or时间元组 = 0, 格式字符串=时间字符串_模板, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
+
+def to_datetime(字符串or时间戳or时间元组=0, 格式字符串=时间字符串_模板, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
     obj = 字符串or时间戳or时间元组
 
     def from_str_to_datetime():
-        字符串 = obj # type:str
+        字符串 = obj  # type:str
         字符串 = 字符串.strip()
-        if 字符串=="" or 字符串=="0":
+        if 字符串 == "" or 字符串 == "0":
             return get_now_datetime()
         return datetime.datetime.strptime(字符串, 格式字符串)
 
@@ -405,7 +265,7 @@ def to_datetime(字符串or时间戳or时间元组 = 0, 格式字符串=时间�
 
     def from_普通元组_to_datetime():
         nonlocal obj
-        普通元组 = obj # type:tuple
+        普通元组 = obj  # type:tuple
         if 普通元组.count() < 9:
             补充个数 = 9 - 普通元组.count()
             for i in range(补充个数):
@@ -415,7 +275,7 @@ def to_datetime(字符串or时间戳or时间元组 = 0, 格式字符串=时间�
 
     def from_时间戳_to_datetime():
         时间戳 = obj  # type:float
-        if 时间戳==0:
+        if 时间戳 == 0:
             return get_now_datetime()
         return datetime.datetime.fromtimestamp(时间戳)
 
@@ -439,22 +299,22 @@ def to_datetime(字符串or时间戳or时间元组 = 0, 格式字符串=时间�
     原点时间 = switch.get(repr(type(obj)), default)()
 
     # 接下来处理时间的增减
-    增加的时间 = datetime.timedelta(seconds=增加几秒,minutes=增加几分钟,hours=增加几小时,days=增加几天)
+    增加的时间 = datetime.timedelta(seconds=增加几秒, minutes=增加几分钟, hours=增加几小时, days=增加几天)
     return 原点时间 + 增加的时间
 
-def to_时间字符串(datetime_or_字符串or时间戳or时间元组 = 0, 格式字符串=时间字符串_模板, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
+def to_时间字符串(datetime_or_字符串or时间戳or时间元组=0, 格式字符串=时间字符串_模板, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
     时间对象 = to_datetime(datetime_or_字符串or时间戳or时间元组, 格式字符串, 增加几秒, 增加几分钟, 增加几小时, 增加几天)
     return 时间对象.strftime(格式字符串)
 
-def to_时间戳(datetime_or_字符串or时间戳or时间元组 = 0, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
+def to_时间戳(datetime_or_字符串or时间戳or时间元组=0, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
     时间对象 = to_datetime(datetime_or_字符串or时间戳or时间元组, 时间字符串_模板, 增加几秒, 增加几分钟, 增加几小时, 增加几天)
     return time.mktime(时间对象.timetuple())
 
-def to_时间元组(datetime_or_字符串or时间戳or时间元组 = 0, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
+def to_时间元组(datetime_or_字符串or时间戳or时间元组=0, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
     时间对象 = to_datetime(datetime_or_字符串or时间戳or时间元组, 时间字符串_模板, 增加几秒, 增加几分钟, 增加几小时, 增加几天)
     return 时间对象.timetuple()
 
-def to_unix(datetime_or_字符串or时间戳or时间元组 = 0, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
+def to_unix(datetime_or_字符串or时间戳or时间元组=0, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
     return to_时间戳(datetime_or_字符串or时间戳or时间元组, 增加几秒, 增加几分钟, 增加几小时, 增加几天)
 
 
@@ -471,8 +331,29 @@ def to_now_时间元组():
     return to_时间元组(0)
 
 
-def x分钟前的unix(分钟数 = 0):
-    return to_unix(0, 增加几分钟= -分钟数)
+def x分钟前的unix(分钟数=0):
+    return to_unix(0, 增加几分钟=-分钟数)
+
+def 整分钟数的当前时间(整多少分钟=30):
+    return 整分钟数的指定时间(整多少分钟=整多少分钟)
+
+def 整分钟数的指定时间(指定的时间=None, 整多少分钟=30):
+    分钟间隔 = 整多少分钟
+    if not 指定的时间:
+        指定的时间 = to_now_datetime()
+    else:
+        指定的时间 = to_datetime(指定的时间)
+    当前整点时间 = 指定的时间.replace(minute=0, second=0, microsecond=0)
+    当前整点时间_加一小时 = to_datetime(当前整点时间, 增加几小时=1)
+    拿来比较的时间 = 当前整点时间_加一小时
+    while 拿来比较的时间 >= 当前整点时间:
+        拿来比较的时间 = to_datetime(拿来比较的时间, 增加几分钟=-分钟间隔)
+        if 指定的时间 >= 拿来比较的时间:
+            return 拿来比较的时间
+
+# 获取当前时间的字符串
+def getCurrentDatetime_str(format_str="%Y-%m-%d %H:%M:%S"):
+    return datetime.datetime.now().strftime(format_str)
 
 # endregion
 
@@ -512,24 +393,24 @@ def to_md5(data):
     md5.update(data)
     return md5.hexdigest()
 
-def to_uuid(去除中横线=True,使用随机数=True):
+def to_uuid(去除中横线=True, 使用随机数=True):
     if 使用随机数:
         id = uuid.uuid4()
     else:
         id = uuid.uuid1()
     id = str(id)
     if 去除中横线:
-        id = id.replace("-","")
+        id = id.replace("-", "")
     return id
 
 __to_变量名__pattren = re.compile(r'[\W+\w+]*?to_变量名\((\w+)\)')
 __to_变量名__变量名集 = []
+
 def to_变量名(变量):
     global __to_变量名__变量名集
     if not __to_变量名__变量名集:
         __to_变量名__变量名集 = __to_变量名__pattren.findall(traceback.extract_stack(limit=2)[0][3])
     return __to_变量名__变量名集.pop(0)
-
 
 # endregion
 
@@ -670,6 +551,21 @@ def cp(旧文件, 新文件, 要删除旧文件=False):
     if 要删除旧文件:
         rm(旧文件)
 
+
+def getAllFilePaths(baseFilePath, is_deep=True, rst_filePaths=[]):
+    if not baseFilePath:
+        baseFilePath = "."
+    # 获取当前目录下的所有文件名
+    f_list = stream(ls(baseFilePath, 选项="", 要包含前缀=True)) \
+        .collect()
+    rst_filePaths += f_list
+    # 递归当前目录下的目录
+    if is_deep:
+        stream(f_list) \
+            .filter(lambda f: isdir(f)) \
+            .forEach(lambda dir: getAllFilePaths(dir, True, rst_filePaths))
+
+    return rst_filePaths
 
 # endregion fileSystem
 
@@ -1130,10 +1026,11 @@ def delay_between_x_y_s(start_delay_num, end_delay_num):
 def delay_x_s(固定延时几秒):
     delay_x_0_s(固定延时几秒)
 
+
 def delay_y_s(随机延时0到几秒):
     delay_0_y_s(随机延时0到几秒)
 
-    
+
 # endregion 随机延时
 
 
@@ -1176,7 +1073,7 @@ def 拆解秒数(秒数, 各时间单位值字典={}):
 
 # endregion
 
-class 计时工具:
+class 打点计时类:
     class 时间值存储类:
         def __init__(self, 时间值=0):
             self.时间值 = 时间值
@@ -1184,7 +1081,7 @@ class 计时工具:
 
         @staticmethod
         def 实例化():
-            return 计时工具.时间值存储类()
+            return 打点计时类.时间值存储类()
 
         def 可视化时间(self):
             # 清空字典
@@ -1207,13 +1104,13 @@ class 计时工具:
     def __init__(self, 数组型打点上限=150, 删除区间=[5, -5]):
         self.默认打点数组 = []
         self.个性打点字典 = {}
-        self.时间值存储实例 = 计时工具.时间值存储类.实例化()
+        self.时间值存储实例 = 打点计时类.时间值存储类.实例化()
         self.数组型打点上限 = 数组型打点上限
         self.删除区间 = 删除区间
 
     @staticmethod
     def 实例化(数组型打点上限=150, 删除区间=[5, -5]):
-        return 计时工具(数组型打点上限, 删除区间)
+        return 打点计时类(数组型打点上限, 删除区间)
 
     def 打点(self, 计时点名称=None):
         计时点 = time.time()
@@ -1273,7 +1170,7 @@ class 计时工具:
             print(e)
 
 
-_静态计时器 = 计时工具.实例化()
+_静态计时器 = 打点计时类.实例化()
 
 
 def 打点(计时点名称=None):
@@ -1358,3 +1255,94 @@ def stream(iteration):
     return switch.get(repr(type(iteration)), default)()
 
 # endregion 流式计算
+
+
+# region 数据集合
+
+# 获取多层dict的值
+def getDictValue(my_dict, key="", default=None, 分隔符="."):
+    if not key:
+        if default:
+            return default
+        else:
+            return my_dict
+
+    try:
+        start_index = 0
+        end_index = len(key) - 1
+        if key[0] == 分隔符: start_index += 1
+        if key[end_index] == 分隔符: end_index -= 1
+        key = key[start_index:end_index + 1]
+        keys = key.split(分隔符)
+        for key in keys:
+            if isinstance(my_dict, list):
+                my_dict = my_dict[int(key)]
+            else:
+                my_dict = my_dict[key]
+        return my_dict
+    except:
+        return default
+
+# 设置多层dict的值
+def setDictValue(mydict, key, value, 分隔符='.'):
+    keys = key.split(分隔符)
+    length = len(keys)
+    for index, i in enumerate(key.split(分隔符)):
+        if int(index) + 1 == length:
+            if isinstance(mydict, list):
+                mydict[int(i)] = value
+            else:
+                mydict[i] = value
+        else:
+            if isinstance(mydict, list):
+                mydict = mydict[int(i)]
+            else:
+                mydict = mydict[i]
+
+
+# 递归获取 指定目录下，拥有指定后缀，的文件路径
+def getDeepFilePaths(baseFilePath, ext="txt", is_deep=True, rst_filePaths=[]):
+    if not baseFilePath:
+        baseFilePath = "."
+    # 处理ext后缀
+    is_all_ext = False
+    selectExt_list = []
+    if not ext:
+        selectExt_list.append("")
+    else:
+        if ext == "*":
+            is_all_ext = True
+        elif isinstance(ext, str):
+            selectExt_list.append(f".{ext}")
+        elif isinstance(ext, list):
+            selectExt_list = stream(ext).filter(lambda i: i).map(lambda i: f".{i}").collect()
+            if "" in ext:
+                selectExt_list.append("")
+        else:
+            raise Exception("ext的类型不支持")
+
+    # 获取当前目录下的所有文件名
+    f_list = stream(os.listdir(baseFilePath)) \
+        .map(lambda fileName: f"{baseFilePath}/{fileName}") \
+        .collect()
+
+    if is_all_ext:
+        rst_filePaths += stream(f_list) \
+            .filter(lambda f: not os.path.isdir(f)) \
+            .collect()
+    else:
+        # 将当前目录下后缀名为指定后缀的文件，放入rst_filePaths列表
+        stream(f_list) \
+            .filter(lambda f: not os.path.isdir(f)) \
+            .filter(lambda f: os.path.splitext(f)[1] in selectExt_list) \
+            .forEach(lambda f: rst_filePaths.append(f))
+
+    # 递归当前目录下的目录
+    if is_deep:
+        stream(f_list) \
+            .filter(lambda f: os.path.isdir(f)) \
+            .forEach(lambda dir: getDeepFilePaths(dir, ext, True, rst_filePaths))
+
+    return rst_filePaths
+
+# endregion
