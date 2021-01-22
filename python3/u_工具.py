@@ -91,7 +91,7 @@ def 打点计时(func):
 
         # region 执行原始函数后
         计时器.打点()
-        print(f'''{func.__name__}: {计时器.计时()}''')
+        print_加锁(f'''{func.__name__}: {计时器.计时()}''')
         # endregion
 
         return rst
@@ -100,10 +100,12 @@ def 打点计时(func):
 # endregion
 
 # region 线程
+# -- 关于初始化区，扫描到几个@就执行几次
 
 __线程池_装饰专用 = futures.ThreadPoolExecutor(12)
 
-def 线程模式_改(返回句柄=True):  # 这里的参数，是给装饰器的参数
+
+def 线程模式_改(is_VIP = False, VIP_name = None):  # 这里的参数，是给装饰器的参数
     # region 装饰器的初始化区1
     # endregion
     def wrap(func):
@@ -115,11 +117,13 @@ def 线程模式_改(返回句柄=True):  # 这里的参数，是给装饰器的
             # region 执行原始函数前
             # endregion
 
-            rst = __线程池_装饰专用.submit(func, *args, **kwargs)  # 执行原始函数
+            if is_VIP:
+                rst = threading.Thread(target=func, name=VIP_name, args=args, kwargs=kwargs)
+                rst.start()
+            else:
+                rst = __线程池_装饰专用.submit(func, *args, **kwargs)  # 执行原始函数
 
             # region 执行原始函数后
-            if not 返回句柄:
-                rst = rst.result()
             # endregion
 
             return rst
