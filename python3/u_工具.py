@@ -391,13 +391,14 @@ def from_class_to_dict(obj):
             pass
     return obj
 
-def to_json_str(obj):
-    try:
-        obj_dict = obj.__dict__
-        obj = from_class_to_dict(obj)
-    except:
-        pass
-    return json.dumps(obj, cls=_MyEncoder)
+def to_json_str(obj,ensure_ascii=False,check_class=True):
+    if check_class:
+        try:
+            obj_dict = obj.__dict__
+            obj = from_class_to_dict(obj)
+        except:
+            pass
+    return json.dumps(obj,ensure_ascii=ensure_ascii, cls=_MyEncoder)
 
 to_json_file = partial( json.dump, ensure_ascii=False, indent=2 )
 # def to_json_file(obj, 文件对象, ensure_ascii=False, indent=2):
