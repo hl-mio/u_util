@@ -400,9 +400,8 @@ def to_json_str(obj,ensure_ascii=False,check_class=True):
             pass
     return json.dumps(obj,ensure_ascii=ensure_ascii, cls=_MyEncoder)
 
-to_json_file = partial( json.dump, ensure_ascii=False, indent=2 )
-# def to_json_file(obj, 文件对象, ensure_ascii=False, indent=2):
-#     return json.dump(obj, 文件对象, ensure_ascii=ensure_ascii, indent=indent)
+def to_json_file(obj, 文件对象, ensure_ascii=False, indent=2):
+    return json.dump(obj, 文件对象, ensure_ascii=ensure_ascii, indent=indent)
 
 def to_json_obj(字符串or文件对象):
     def from_str_to_dict():
