@@ -366,20 +366,35 @@ def getCurrentDatetime_str(format_str="%Y-%m-%d %H:%M:%S"):
 
 # region json
 
-def _obj2dict(obj):
-    memberlist = [m for m in dir(obj)]
-    _dict = {}
-    for m in memberlist:
-        if m[0] != "_" and not callable(m):
-            _dict[m] = getattr(obj, m)
-    return _dict
+class _MyEncoder(JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime.datetime):
+            return to_时间字符串(obj)
+        raise Exception(f"{obj}  {repr(type(obj))}  不能被处理")
 
-class _ClsEncoder(JSONEncoder):
-    def default(self, o):
-        return _obj2dict(o)
+def _get_dict(obj):
+    try:
+        rst = dict(obj)
+    except:
+        rst = obj.__dict__
+    return rst
 
+def from_class_to_dict(obj):
+    obj = _get_dict(obj)
+    for i in obj:
+        try:
+            obj[i] = _get_dict(obj[i])
+        except:
+            pass
+    return obj
 
-to_json_str = partial( json.dumps, cls=_ClsEncoder )
+def to_json_str(obj):
+    try:
+        obj_dict = obj.__dict__
+        obj = from_class_to_dict(obj)
+    except:
+        pass
+    return json.dumps(obj, cls=_MyEncoder)
 
 def to_json_file(obj, 文件对象, ensure_ascii=False, indent=2):
     return json.dump(obj, 文件对象, ensure_ascii=ensure_ascii, indent=indent)
