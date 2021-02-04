@@ -14,6 +14,9 @@ import ctypes
 from pathlib import Path
 from concurrent import futures
 from functools import wraps
+from functools import partial
+from json import JSONEncoder
+
 
 # region 未分类
 
@@ -363,8 +366,20 @@ def getCurrentDatetime_str(format_str="%Y-%m-%d %H:%M:%S"):
 
 # region json
 
-def to_json_str(obj):
-    return json.dumps(obj)
+def _obj2dict(obj):
+    memberlist = [m for m in dir(obj)]
+    _dict = {}
+    for m in memberlist:
+        if m[0] != "_" and not callable(m):
+            _dict[m] = getattr(obj, m)
+    return _dict
+
+class _ClsEncoder(JSONEncoder):
+    def default(self, o):
+        return _obj2dict(o)
+
+
+to_json_str = partial( json.dumps, cls=_ClsEncoder )
 
 def to_json_file(obj, 文件对象, ensure_ascii=False, indent=2):
     return json.dump(obj, 文件对象, ensure_ascii=ensure_ascii, indent=indent)
