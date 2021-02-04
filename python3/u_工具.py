@@ -364,6 +364,9 @@ def getCurrentDatetime_str(format_str="%Y-%m-%d %H:%M:%S"):
 
 # endregion
 
+def to_self(obj):
+    return to_json_obj(to_json_str(obj))
+
 # region json
 
 class _MyEncoder(JSONEncoder):
