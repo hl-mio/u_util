@@ -6,4 +6,8 @@ public class other {
         return java.lang.System.identityHashCode(obj);
     }
 
+    public static int get对象唯一标识符(Object obj) {
+        return System.identityHashCode(obj);
+    }
+
 }

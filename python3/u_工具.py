@@ -387,6 +387,8 @@ class _MyEncoder(JSONEncoder):
     def default(self, obj):
         if isinstance(obj, datetime.datetime):
             return to_时间字符串(obj)
+        if isinstance(obj, bytes):
+            return obj.decode("utf8")
         raise Exception(f"{obj}  {repr(type(obj))}  不能被处理")
 
 def _get_dict(obj):
