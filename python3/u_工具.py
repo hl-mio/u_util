@@ -20,6 +20,20 @@ from json import JSONEncoder
 
 # region 未分类
 
+import subprocess
+import platform
+
+def is_linux_system():
+    return 'linux' in platform.system().lower()
+
+def is_windows_system():
+    return 'windows' in platform.system().lower()
+
+def shell(cmd, stdout=subprocess.PIPE, encoding="utf8", shell=True, check=True, **kwargs):
+    return subprocess.run(cmd, stdout=stdout, encoding=encoding, shell=shell, check=check, **kwargs)\
+                    .stdout
+
+
 __lock_print = threading.Lock()
 
 def print_加锁(*args, **kwargs):
