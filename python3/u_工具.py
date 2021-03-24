@@ -41,25 +41,6 @@ def print_加锁(*args, **kwargs):
         print(*args, **kwargs)
 
 
-def 每x行取第y行_生成器(x, y):
-    行数 = -1 - (y - 1)
-    while True:
-        行数 += 1
-        if 行数 % x == 0:
-            yield True
-        else:
-            yield False
-
-def 每x行取任意行_生成器(x, *args):
-    行数 = -1
-    while True:
-        行数 += 1
-        余数 = 行数 % x
-        if (余数 + 1) in args:
-            yield True
-        else:
-            yield False
-
 def change_locals(frame, 修改表={}):
     frame.f_locals.update(修改表)
     ctypes.pythonapi.PyFrame_LocalsToFast(
@@ -90,6 +71,39 @@ def 文件名防重_追加数字(filename, base_dir="", is_中间加斜杠=False
         return 输出文件
 
 # endregion 未分类
+
+
+# region 生成器
+def 每x行取第y行_生成器类(x, y):
+    行数 = -1 - (y - 1)
+    while True:
+        行数 += 1
+        if 行数 % x == 0:
+            yield True
+        else:
+            yield False
+
+def 每x行取任意行_生成器类(x, *args):
+    行数 = -1
+    while True:
+        行数 += 1
+        余数 = 行数 % x
+        if (余数 + 1) in args:
+            yield True
+        else:
+            yield False
+            
+def 计时点_生成器类(隔几个点空格=5, 隔几个点换行=10, 输出的点="."):
+    每x行取第x行 = 每x行取第y行_生成器类(隔几个点空格, 隔几个点空格)
+    每y行取第y行 = 每x行取第y行_生成器类(隔几个点换行, 隔几个点换行)
+    while True:
+        最终输出 = 输出的点
+        if next(每x行取第x行):
+            最终输出 += " "
+        if next(每y行取第y行):
+            最终输出 += "\n"
+        yield 最终输出
+# endregion
 
 
 # region 装饰器
