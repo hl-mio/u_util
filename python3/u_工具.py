@@ -11,17 +11,20 @@ import uuid
 import re
 import traceback
 import ctypes
+import pytz
+from json import JSONEncoder
 from pathlib import Path
 from concurrent import futures
 from functools import wraps
 from functools import partial
-from json import JSONEncoder
+
 
 
 # region 未分类
 
 import subprocess
 import platform
+
 
 def is_linux_system():
     return 'linux' in platform.system().lower()
@@ -190,6 +193,8 @@ def 线程模式(func):
 # endregion
 
 # region 定时任务
+from apscheduler.executors.pool import ThreadPoolExecutor,ProcessPoolExecutor
+from apscheduler.schedulers.background import BackgroundScheduler
 
 _scheduler = None
 _定时任务列表 = []
