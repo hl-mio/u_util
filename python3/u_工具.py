@@ -22,6 +22,30 @@ from functools import partial
 
 # region 未分类
 
+def list去掉指定项(数据源list, 序号列表, 序号从0开始=True, 元素值列表=None, 不改变原数组=True):
+    if 不改变原数组:
+        数据源list = to_self(数据源list)
+
+    if 序号列表:
+        if isinstance(序号列表, int):
+            序号列表 = [序号列表]
+        if not 序号从0开始:
+            序号列表 = stream(序号列表).map(lambda i: i - 1).collect()
+        序号列表.sort(key=None, reverse=True)
+        for i in 序号列表:
+            数据源list.pop(i)
+
+    if 元素值列表:
+        if isinstance(元素值列表, int):
+            元素值列表 = [元素值列表]
+        for i in 元素值列表:
+            if i in 数据源list:
+                数据源list.remove(i)
+
+    return 数据源list
+
+
+
 import subprocess
 import platform
 
