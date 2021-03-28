@@ -1273,7 +1273,7 @@ def list去掉指定项(数据源list, 序号列表=None, 序号从0开始=True,
         if isinstance(序号列表, int):
             序号列表 = [序号列表]
         if not 序号从0开始:
-            序号列表 = stream(序号列表).map(lambda i: i - 1).collect()
+            序号列表 = stream(序号列表).map(lambda i: int(i) - 1).collect()
         序号列表.sort(key=None, reverse=True)
         for i in 序号列表:
             数据源list.pop(i)
