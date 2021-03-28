@@ -24,51 +24,10 @@ from functools import partial
 
 # region 未分类
 
-def list去掉指定项(数据源list, 序号列表, 序号从0开始=True, 元素值列表=None, 不改变原数组=True):
-    if 不改变原数组:
-        数据源list = to_self(数据源list)
-
-    if 序号列表:
-        if isinstance(序号列表, int):
-            序号列表 = [序号列表]
-        if not 序号从0开始:
-            序号列表 = stream(序号列表).map(lambda i: i - 1).collect()
-        序号列表.sort(key=None, reverse=True)
-        for i in 序号列表:
-            数据源list.pop(i)
-
-    if 元素值列表:
-        if isinstance(元素值列表, int):
-            元素值列表 = [元素值列表]
-        for i in 元素值列表:
-            if i in 数据源list:
-                数据源list.remove(i)
-
-    return 数据源list
-
-
-
-import subprocess
-import platform
-
-
-def is_linux_system():
-    return 'linux' in platform.system().lower()
-
-def is_windows_system():
-    return 'windows' in platform.system().lower()
-
-def shell(cmd, stdout=subprocess.PIPE, encoding="utf8", shell=True, check=True, **kwargs):
-    return subprocess.run(cmd, stdout=stdout, encoding=encoding, shell=shell, check=check, **kwargs)\
-                    .stdout
-
-
 __lock_print = threading.Lock()
-
 def print_加锁(*args, **kwargs):
     with __lock_print:
         print(*args, **kwargs)
-
 
 def change_locals(frame, 修改表={}):
     frame.f_locals.update(修改表)
@@ -100,6 +59,23 @@ def 文件名防重_追加数字(filename, base_dir="", is_中间加斜杠=False
         return 输出文件
 
 # endregion 未分类
+
+
+# region shell
+import subprocess
+import platform
+
+
+def is_linux_system():
+    return 'linux' in platform.system().lower()
+
+def is_windows_system():
+    return 'windows' in platform.system().lower()
+
+def shell(cmd, stdout=subprocess.PIPE, encoding="utf8", shell=True, check=True, **kwargs):
+    return subprocess.run(cmd, stdout=stdout, encoding=encoding, shell=shell, check=check, **kwargs)\
+                    .stdout
+# endregion
 
 
 # region 生成器
@@ -1094,47 +1070,6 @@ def 序号(字符串模板="(1)"):
 # endregion 线程序号
 
 
-# region 随机延时
-
-# 固定延时x秒
-def delay_x_0_s(fixed_delay_num):
-    x = float(fixed_delay_num)
-    time.sleep(x)
-
-
-# 随机延时 0~y 秒
-def delay_0_y_s(random_delay_num):
-    y = float(random_delay_num)
-    time.sleep(random.random() * y)
-
-
-# 先固定延时x秒，再随机延时 0~y 秒
-# 延时区间，包前不包后
-def delay_x_y_s(fixed_delay_num, random_delay_num):
-    delay_x_0_s(fixed_delay_num)
-    delay_0_y_s(random_delay_num)
-
-
-# 随机延时 x~y 秒
-# 延时区间，包前不包后
-def delay_between_x_y_s(start_delay_num, end_delay_num):
-    x = float(start_delay_num)
-    y = float(end_delay_num)
-    delay_x_0_s(x)
-    delay_0_y_s(y - x)
-
-
-def delay_x_s(固定延时几秒):
-    delay_x_0_s(固定延时几秒)
-
-
-def delay_y_s(随机延时0到几秒):
-    delay_0_y_s(随机延时0到几秒)
-
-
-# endregion 随机延时
-
-
 # region 打点计时
 
 # region 转换秒数相关
@@ -1285,80 +1220,104 @@ def 计时(起始点=None, 结束点=None):
 # endregion 打点计时
 
 
-# region 流式计算
+# region 随机延时
 
-class ListStream:
-    def __init__(self, my_list=[]):
-        self.list = list(my_list)
-
-    def filter(self, func):
-        self.list = list(filter(func, self.list))
-        return self
-
-    def map(self, func):
-        self.list = list(map(func, self.list))
-        return self
-
-    def forEach(self, func):
-        list(map(func, self.list))
-        return self
-
-    def print(self):
-        self.forEach(lambda item: print(item))
-        return self
-
-    def collect(self):
-        return self.list
+# 固定延时x秒
+def delay_x_0_s(fixed_delay_num):
+    x = float(fixed_delay_num)
+    time.sleep(x)
 
 
-class DictStream(ListStream):
-    def __init__(self, my_dict={}):
-        self.list = self.dict_to_list(my_dict)
-
-    def collect(self, is_to_dict=True):
-        if is_to_dict:
-            return self.list_to_dict(self.list)
-        else:
-            return self.list
-
-    def dict_to_list(self, old_dict):
-        new_list = []
-        for i in old_dict.keys():
-            temp_dict = {}
-            temp_dict["key"] = i
-            temp_dict["value"] = old_dict[i]
-            new_list.append(temp_dict)
-        return new_list
-
-    def list_to_dict(self, old_list):
-        new_dict = {}
-        for i in old_list:
-            new_dict[i["key"]] = i["value"]
-        return new_dict
+# 随机延时 0~y 秒
+def delay_0_y_s(random_delay_num):
+    y = float(random_delay_num)
+    time.sleep(random.random() * y)
 
 
-def stream(iteration):
-    def list_处理():
-        return ListStream(iteration)
+# 先固定延时x秒，再随机延时 0~y 秒
+# 延时区间，包前不包后
+def delay_x_y_s(fixed_delay_num, random_delay_num):
+    delay_x_0_s(fixed_delay_num)
+    delay_0_y_s(random_delay_num)
 
-    def dict_处理():
-        return DictStream(iteration)
 
-    def default():
-        raise Exception("stream化失败,参数类型未支持")
+# 随机延时 x~y 秒
+# 延时区间，包前不包后
+def delay_between_x_y_s(start_delay_num, end_delay_num):
+    x = float(start_delay_num)
+    y = float(end_delay_num)
+    delay_x_0_s(x)
+    delay_0_y_s(y - x)
 
-    switch = {
-        "<class 'list'>": list_处理,
-        "<class 'tuple'>": list_处理,
-        "<class 'str'>": list_处理,
-        "<class 'dict'>": dict_处理
-    }
-    return switch.get(repr(type(iteration)), default)()
 
-# endregion 流式计算
+def delay_x_s(固定延时几秒):
+    delay_x_0_s(固定延时几秒)
+
+
+def delay_y_s(随机延时0到几秒):
+    delay_0_y_s(随机延时0到几秒)
+
+
+# endregion 随机延时
 
 
 # region 数据集合
+
+def list去掉指定项(数据源list, 序号列表=None, 序号从0开始=True, 元素值列表=None, 不改变原数组=True):
+    if 不改变原数组:
+        数据源list = to_self(数据源list)
+
+    if 序号列表:
+        if isinstance(序号列表, str):
+            序号列表 = int(序号列表)
+        if isinstance(序号列表, int):
+            序号列表 = [序号列表]
+        if not 序号从0开始:
+            序号列表 = stream(序号列表).map(lambda i: i - 1).collect()
+        序号列表.sort(key=None, reverse=True)
+        for i in 序号列表:
+            数据源list.pop(i)
+
+    if 元素值列表:
+        if not isinstance(元素值列表, list):
+            元素值列表 = [元素值列表]
+        for i in 元素值列表:
+            if i in 数据源list:
+                数据源list.remove(i)
+
+    return 数据源list
+
+def list去掉指定项_多层list(数据源list, 多层序号字符串_list=None, 序号从0开始=True, 元素值列表=None, 不改变原数组=True, 序号分隔符="."):
+    if 不改变原数组:
+        数据源list = to_self(数据源list)
+
+    if 多层序号字符串_list:
+        if isinstance(多层序号字符串_list, str):
+            多层序号字符串_list = [多层序号字符串_list]
+        for 多层序号字符串 in 多层序号字符串_list:
+            序号list = 多层序号字符串.split(序号分隔符)
+            临时list = 数据源list
+            for i in 序号list[:-1]:
+                if 序号从0开始:
+                    临时list = 临时list[int(i)]
+                else:
+                    临时list = 临时list[int(i)-1]
+            list去掉指定项(临时list,序号list[-1],序号从0开始,元素值列表=None,不改变原数组=False)
+
+    if 元素值列表:
+        if not isinstance(元素值列表, list):
+            元素值列表 = [元素值列表]
+        for 元素值 in 元素值列表:
+            临时list = 数据源list
+            def 递归删除list中的指定元素(数据源list, 元素值):
+                list去掉指定项(数据源list, None, 序号从0开始, 元素值列表=[元素值], 不改变原数组=False)
+                for i in 数据源list:
+                    if isinstance(i, list):
+                        递归删除list中的指定元素(i, 元素值)
+            递归删除list中的指定元素(临时list,元素值)
+
+    return 数据源list
+
 
 # 获取多层dict的值
 def getDictValue(my_dict, key="", default=None, 分隔符="."):
@@ -1447,3 +1406,76 @@ def getDeepFilePaths(baseFilePath, ext="txt", is_deep=True, rst_filePaths=[]):
     return rst_filePaths
 
 # endregion
+
+
+# region 流式计算
+
+class ListStream:
+    def __init__(self, my_list=[]):
+        self.list = list(my_list)
+
+    def filter(self, func):
+        self.list = list(filter(func, self.list))
+        return self
+
+    def map(self, func):
+        self.list = list(map(func, self.list))
+        return self
+
+    def forEach(self, func):
+        list(map(func, self.list))
+        return self
+
+    def print(self):
+        self.forEach(lambda item: print(item))
+        return self
+
+    def collect(self):
+        return self.list
+
+
+class DictStream(ListStream):
+    def __init__(self, my_dict={}):
+        self.list = self.dict_to_list(my_dict)
+
+    def collect(self, is_to_dict=True):
+        if is_to_dict:
+            return self.list_to_dict(self.list)
+        else:
+            return self.list
+
+    def dict_to_list(self, old_dict):
+        new_list = []
+        for i in old_dict.keys():
+            temp_dict = {}
+            temp_dict["key"] = i
+            temp_dict["value"] = old_dict[i]
+            new_list.append(temp_dict)
+        return new_list
+
+    def list_to_dict(self, old_list):
+        new_dict = {}
+        for i in old_list:
+            new_dict[i["key"]] = i["value"]
+        return new_dict
+
+
+def stream(iteration):
+    def list_处理():
+        return ListStream(iteration)
+
+    def dict_处理():
+        return DictStream(iteration)
+
+    def default():
+        raise Exception("stream化失败,参数类型未支持")
+
+    switch = {
+        "<class 'list'>": list_处理,
+        "<class 'tuple'>": list_处理,
+        "<class 'str'>": list_处理,
+        "<class 'dict'>": dict_处理
+    }
+    return switch.get(repr(type(iteration)), default)()
+
+# endregion 流式计算
