@@ -1,4 +1,6 @@
-# coding:utf-8
+# -*- coding: utf-8 -*-
+# @Time    : 2021-03-29
+# @Author  : hlmio
 import hashlib
 import json
 import os
