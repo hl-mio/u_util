@@ -24,6 +24,28 @@ from functools import partial
 
 # region 未分类
 
+import xlrd
+
+def get合并单元格(sheet, 行下标, 列下标):
+    单元格值 = sheet.cell_value(行下标, 列下标)
+    merged = sheet.merged_cells
+    for (row_index_min, row_index_max, col_index_min, col_index_max) in merged:
+        if row_index_min <= 行下标  and 行下标 < row_index_max:
+            if col_index_min <= 列下标 and 列下标 < col_index_max:
+                单元格值 = sheet.cell_value(row_index_min, col_index_min)
+                break
+    return 单元格值
+
+def get合并单元格_整行(sheet, 行下标, 不强制判断合并单元格=True):
+    强制判断合并单元格 = not 不强制判断合并单元格
+    row = sheet.row_values(行下标)
+    for 列下标, value in enumerate(row):
+        if not value or 强制判断合并单元格:
+            row[列下标] = get合并单元格(sheet, 行下标, 列下标)
+    return row
+
+
+
 __lock_print = threading.Lock()
 def print_加锁(*args, **kwargs):
     with __lock_print:
