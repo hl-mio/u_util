@@ -26,6 +26,44 @@ from functools import partial
 
 import xlrd
 
+
+def 获取excel表头_list(sheet, 表头行下标):
+    if isinstance(表头行下标, int):
+        表头list = get合并单元格_整行(sheet, 表头行下标)
+        return stream(表头list).map(lambda i: str(i).strip()).collect()
+    assert isinstance(表头行下标, list)
+    sheet_columns = sheet.ncols
+    表头list = ["" for i in range(sheet_columns)]
+    表头行下标.sort()
+    for i in 表头行下标:
+        for j in range(sheet_columns):
+            if is合并单元格(sheet,i,j):
+                if is第一行的合并单元格(sheet, i, j):
+                    cell_value = get合并单元格(sheet, i, j)
+                    表头list[j] = f"{表头list[j]}-{cell_value}"
+            else:
+                cell_value = sheet.cell_value(i, j)
+                表头list[j] = f"{表头list[j]}-{cell_value}"
+    表头list = stream(表头list).map(lambda i: i[1:]).collect()
+    return 表头list
+
+def is第一行的合并单元格(sheet, 行下标, 列下标):
+    merged = sheet.merged_cells
+    for (row_index_min, row_index_max, col_index_min, col_index_max) in merged:
+        if row_index_min == 行下标 :
+            if col_index_min <= 列下标 and 列下标 < col_index_max :
+                return True
+    return False
+
+def is合并单元格(sheet, 行下标, 列下标):
+    merged = sheet.merged_cells
+    for (row_index_min, row_index_max, col_index_min, col_index_max) in merged:
+        if row_index_min <= 行下标 and 行下标 < row_index_max:
+            if col_index_min <= 列下标 and 列下标 < col_index_max:
+                return True
+    return False
+
+
 def get合并单元格(sheet, 行下标, 列下标):
     单元格值 = sheet.cell_value(行下标, 列下标)
     merged = sheet.merged_cells
