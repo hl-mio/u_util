@@ -147,12 +147,14 @@ def 每x行取第y行_生成器类(x, y):
             yield False
 
 
-def 每x行取任意行_生成器类(x, *args):
+def 每x行取任意行_生成器类(x, 行编号=[]):
+    if isinstance(行编号, int):
+        行编号 = [行编号]
     行数 = -1
     while True:
         行数 += 1
         余数 = 行数 % x
-        if (余数 + 1) in args:
+        if (余数 + 1) in 行编号:
             yield True
         else:
             yield False
