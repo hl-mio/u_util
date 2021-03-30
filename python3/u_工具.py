@@ -624,9 +624,15 @@ def rm(文件全路径, 选项="-rf"):
         else:
             os.remove(文件全路径)
 
-def cp(旧文件, 新文件, 要删除旧文件=False):
+def cp(旧文件, 新文件, 不删旧文件=True):
     旧文件类型 = "dir" if isdir(旧文件) else "file"
     新文件类型 = "dir" if isdir(新文件) else "file"
+
+    # 确保文件夹存在
+    if 新文件类型 == "dir":
+        mk(新文件)
+    if not exist(get文件所在目录(新文件)):
+        mk(get文件所在目录(新文件))
 
     def file_file():
         # shutil.copyfile(旧文件,新文件)  # 只复制内容
@@ -660,8 +666,8 @@ def cp(旧文件, 新文件, 要删除旧文件=False):
     }
     switch.get(f"{旧文件类型}-{新文件类型}", default)()
 
-    if 要删除旧文件:
-        rm(旧文件)
+    if not 不删旧文件:
+        rm(旧文件, "-rf")
 
 
 def get文件名(文件全路径):
