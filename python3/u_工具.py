@@ -557,35 +557,33 @@ def to_变量名(变量):
 def exist(文件全路径):
     return os.path.exists(文件全路径)
 
-
 def isdir(文件全路径):
     if exist(文件全路径):
         return os.path.isdir(文件全路径)
     else:
-        文件后缀 = get文件后缀(文件全路径)
-        if not 文件后缀:
-            return True
-        else:
+        if get文件后缀(文件全路径):
             return False
-
-
-def ls(文件全路径, 选项="", 要包含前缀=False):
-    选项 = 选项.lower()
-    if exist(文件全路径):
-        if isdir(文件全路径):
-            if ("p" in 选项) or ("r" in 选项):
-                return getAllFilePaths(文件全路径)
-            else:
-                if 要包含前缀:
-                    return stream(os.listdir(文件全路径)) \
-                        .map(lambda i: os.path.join(文件全路径, i)).collect()
-                else:
-                    return os.listdir(文件全路径)
         else:
-            return [文件全路径];
-    else:
-        return []
+            return True
 
+def ls(文件全路径, 包含前缀=True, 选项=""):
+    选项 = 选项.lower()
+    if not exist(文件全路径):
+        return []
+    if not isdir(文件全路径):
+        return [文件全路径]
+
+    if ("p" in 选项) or ("r" in 选项):
+        filePaths = getAllFilePaths(文件全路径, is_deep=True)
+        if not 包含前缀:
+            filePaths = stream(filePaths).map(lambda i: get文件名(i)).collect()
+        return filePaths
+    else:
+        if 包含前缀:
+            return stream(os.listdir(文件全路径)) \
+                    .map(lambda i: os.path.join(文件全路径, i)).collect()
+        else:
+            return os.listdir(文件全路径)
 
 def mkdir(文件全路径, 选项="-p"):
     选项 = 选项.lower()
@@ -595,12 +593,11 @@ def mkdir(文件全路径, 选项="-p"):
         else:
             os.mkdir(文件全路径)
 
-
-def mk(文件全路径, 选项="-p", 要删除旧文件=False):
+def mk(文件全路径, 已有跳过_不删除=True, 选项="-p"):
     选项 = 选项.lower()
     if exist(文件全路径):
-        if 要删除旧文件:
-            rm(文件全路径)
+        if not 已有跳过_不删除:
+            rm(文件全路径, "-rf")
         else:
             return
 
@@ -612,7 +609,6 @@ def mk(文件全路径, 选项="-p", 要删除旧文件=False):
             mk(所在目录, 选项)
         with open(文件全路径, "a"):
             pass
-
 
 def rm(文件全路径, 选项="-rf"):
     if exist(文件全路径):
@@ -627,27 +623,6 @@ def rm(文件全路径, 选项="-rf"):
                         .forEach(lambda i: rm(i))
         else:
             os.remove(文件全路径)
-
-
-def get文件后缀(文件全路径):
-    return os.path.splitext(文件全路径)[1]
-
-
-def get文件名(文件全路径):
-    return os.path.basename(文件全路径)
-
-
-def get文件所在目录(文件全路径):
-    return os.path.dirname(文件全路径)
-
-
-def basename(文件全路径):
-    return get文件名(文件全路径)
-
-
-def dirname(文件全路径):
-    return get文件所在目录(文件全路径)
-
 
 def cp(旧文件, 新文件, 要删除旧文件=False):
     旧文件类型 = "dir" if isdir(旧文件) else "file"
@@ -689,19 +664,61 @@ def cp(旧文件, 新文件, 要删除旧文件=False):
         rm(旧文件)
 
 
-def getAllFilePaths(baseFilePath, is_deep=True, rst_filePaths=[]):
-    if not baseFilePath:
-        baseFilePath = "."
-    # 获取当前目录下的所有文件名
-    f_list = stream(ls(baseFilePath, 选项="", 要包含前缀=True)) \
-        .collect()
-    rst_filePaths += f_list
+def get文件名(文件全路径):
+    return os.path.basename(文件全路径)
+def get文件后缀(文件全路径):
+    return os.path.splitext(文件全路径)[1]
+def get文件所在目录(文件全路径):
+    return os.path.dirname(文件全路径)
+
+
+def getAllFilePaths(baseFilePath, is_deep=True):
+    return getDeepFilePaths(baseFilePath, "*", is_deep)
+# 递归获取 指定目录下，拥有指定后缀，的文件路径
+def getDeepFilePaths(baseFilePath, ext_list="txt", is_deep=True):
+    rst_filePaths = []
+    _getDeepFilePaths(rst_filePaths, baseFilePath, ext_list, is_deep)
+    return rst_filePaths
+def _getDeepFilePaths(rst_filePaths, baseFilePath, ext_list="txt", is_deep=True):
+    rst_filePaths += getCurrentFilePaths(baseFilePath, ext_list)
     # 递归当前目录下的目录
     if is_deep:
+        f_list = stream(os.listdir(baseFilePath)) \
+                    .map(lambda fileName: os.path.join(baseFilePath, fileName)) \
+                    .collect()
         stream(f_list) \
-            .filter(lambda f: isdir(f)) \
-            .forEach(lambda dir: getAllFilePaths(dir, True, rst_filePaths))
+            .filter(lambda f: os.path.isdir(f)) \
+            .forEach(lambda dir: _getDeepFilePaths(rst_filePaths, dir, ext_list, True))
+def getCurrentFilePaths(baseFilePath, ext_list="txt"):
+    rst_filePaths = []
+    if not baseFilePath:
+        baseFilePath = "."
+    # 处理ext后缀
+    is_all_ext = False
+    if not isinstance(ext_list, list):
+        ext_list = [ext_list]
+    selectExt_list = stream(ext_list).map(lambda i: i if (i and i[0]==".") else f".{i}").collect()
+    if ("." in selectExt_list) or (".None" in selectExt_list):
+        selectExt_list.append("")
+    if (".*" in selectExt_list):
+        is_all_ext = True
+    selectExt_list = stream(selectExt_list).filter(lambda i: i!="." and i!=".None" and i!=".*").collect()
 
+    # 获取当前目录下的所有文件名
+    f_list = stream(os.listdir(baseFilePath)) \
+                .map(lambda fileName: os.path.join(baseFilePath,fileName)) \
+                .collect()
+
+    if is_all_ext:
+        rst_filePaths += stream(f_list) \
+                            .filter(lambda f: not os.path.isdir(f)) \
+                            .collect()
+    else:
+        # 将当前目录下后缀名为指定后缀的文件，放入rst_filePaths列表
+        stream(f_list) \
+            .filter(lambda f: not os.path.isdir(f)) \
+            .filter(lambda f: os.path.splitext(f)[1] in selectExt_list) \
+            .forEach(lambda f: rst_filePaths.append(f))
     return rst_filePaths
 
 # endregion fileSystem
@@ -1382,10 +1399,7 @@ def list去掉指定项_多层list(数据源list, 多层序号字符串_list=Non
 # 获取多层dict的值
 def getDictValue(my_dict, key="", default=None, 分隔符="."):
     if not key:
-        if default:
-            return default
-        else:
-            return my_dict
+        return default
 
     try:
         start_index = 0
@@ -1402,7 +1416,6 @@ def getDictValue(my_dict, key="", default=None, 分隔符="."):
         return my_dict
     except:
         return default
-
 # 设置多层dict的值
 def setDictValue(mydict, key, value, 分隔符='.'):
     keys = key.split(分隔符)
@@ -1418,52 +1431,6 @@ def setDictValue(mydict, key, value, 分隔符='.'):
                 mydict = mydict[int(i)]
             else:
                 mydict = mydict[i]
-
-
-# 递归获取 指定目录下，拥有指定后缀，的文件路径
-def getDeepFilePaths(baseFilePath, ext="txt", is_deep=True, rst_filePaths=[]):
-    if not baseFilePath:
-        baseFilePath = "."
-    # 处理ext后缀
-    is_all_ext = False
-    selectExt_list = []
-    if not ext:
-        selectExt_list.append("")
-    else:
-        if ext == "*":
-            is_all_ext = True
-        elif isinstance(ext, str):
-            selectExt_list.append(f".{ext}")
-        elif isinstance(ext, list):
-            selectExt_list = stream(ext).filter(lambda i: i).map(lambda i: f".{i}").collect()
-            if "" in ext:
-                selectExt_list.append("")
-        else:
-            raise Exception("ext的类型不支持")
-
-    # 获取当前目录下的所有文件名
-    f_list = stream(os.listdir(baseFilePath)) \
-        .map(lambda fileName: os.path.join(baseFilePath,fileName)) \
-        .collect()
-
-    if is_all_ext:
-        rst_filePaths += stream(f_list) \
-            .filter(lambda f: not os.path.isdir(f)) \
-            .collect()
-    else:
-        # 将当前目录下后缀名为指定后缀的文件，放入rst_filePaths列表
-        stream(f_list) \
-            .filter(lambda f: not os.path.isdir(f)) \
-            .filter(lambda f: os.path.splitext(f)[1] in selectExt_list) \
-            .forEach(lambda f: rst_filePaths.append(f))
-
-    # 递归当前目录下的目录
-    if is_deep:
-        stream(f_list) \
-            .filter(lambda f: os.path.isdir(f)) \
-            .forEach(lambda dir: getDeepFilePaths(dir, ext, True, rst_filePaths))
-
-    return rst_filePaths
 
 # endregion
 
