@@ -1443,7 +1443,7 @@ def getDeepFilePaths(baseFilePath, ext="txt", is_deep=True, rst_filePaths=[]):
 
     # 获取当前目录下的所有文件名
     f_list = stream(os.listdir(baseFilePath)) \
-        .map(lambda fileName: f"{baseFilePath}/{fileName}") \
+        .map(lambda fileName: os.path.join(baseFilePath,fileName)) \
         .collect()
 
     if is_all_ext:
