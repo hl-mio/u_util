@@ -576,7 +576,6 @@ def mk(文件全路径, 已有跳过_不删除=True, 选项="-p"):
     if exist(文件全路径):
         if not 已有跳过_不删除:
             rm(文件全路径, "-rf")
-            mk(文件全路径, True, 选项)
         else:
             return
 
