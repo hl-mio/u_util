@@ -35,28 +35,6 @@ def change_locals(frame, 修改表={}):
         ctypes.c_int(0)
     )
 
-# 文件名添加数字后缀以避免重名
-def 文件名防重_追加数字(filename, base_dir="", is_中间加斜杠=False, is_数字前加下划线=True, 后缀数字=2, 步长=1):
-    if is_中间加斜杠:
-        base_dir = base_dir + "/"
-    输出文件 = base_dir + filename
-
-    # 确定输出的文件名
-    前缀字符 = os.path.splitext(输出文件)[0]
-    后缀类型 = os.path.splitext(输出文件)[1]
-    while os.path.exists(输出文件):
-        if is_数字前加下划线:
-            输出文件 = f"{前缀字符}_{后缀数字}{后缀类型}"
-        else:
-            输出文件 = f"{前缀字符}{后缀数字}{后缀类型}"
-        后缀数字 += 步长
-
-    match结果 = re.match(f"({base_dir})([\s\S]*)", 输出文件)
-    if match结果:
-        return match结果.group(2)
-    else:
-        return 输出文件
-
 # endregion 未分类
 
 
@@ -598,6 +576,7 @@ def mk(文件全路径, 已有跳过_不删除=True, 选项="-p"):
     if exist(文件全路径):
         if not 已有跳过_不删除:
             rm(文件全路径, "-rf")
+            mk(文件全路径, True, 选项)
         else:
             return
 
@@ -623,6 +602,14 @@ def rm(文件全路径, 选项="-rf"):
                         .forEach(lambda i: rm(i))
         else:
             os.remove(文件全路径)
+
+def clear(文件全路径, 选项="-rf"):
+    if isdir(文件全路径):
+        if not exist(文件全路径):
+            return
+        stream(ls(文件全路径)).forEach(lambda f: rm(f, 选项))
+    else:
+        rm(文件全路径, 选项)
 
 def cp(旧文件, 新文件, 不删旧文件=True):
     旧文件类型 = "dir" if isdir(旧文件) else "file"
