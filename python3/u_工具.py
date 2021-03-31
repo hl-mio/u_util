@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2021-03-30
+# @Time    : 2021-03-31
 # @Author  : hlmio
 import hashlib
 import json
@@ -63,7 +63,7 @@ def 获取excel表头_list(sheet, 表头行下标):
     if isinstance(表头行下标, int):
         表头list = get合并单元格_整行(sheet, 表头行下标)
         return stream(表头list).map(lambda i: str(i).strip()).collect()
-    assert isinstance(表头行下标, list)
+    assert not isinstance(表头行下标, (int, str))
     sheet_columns = sheet.ncols
     表头list = ["" for i in range(sheet_columns)]
     表头行下标.sort()
@@ -688,7 +688,7 @@ def getCurrentFilePaths(baseFilePath, ext_list="txt"):
         baseFilePath = "."
     # 处理ext后缀
     is_all_ext = False
-    if not isinstance(ext_list, list):
+    if not isinstance(ext_list, (list,tuple)):
         ext_list = [ext_list]
     selectExt_list = stream(ext_list).map(lambda i: i if (i and i[0]==".") else f".{i}").collect()
     if ("." in selectExt_list) or (".None" in selectExt_list):
@@ -1349,7 +1349,7 @@ def list去掉指定项(数据源list, 序号列表=None, 序号从0开始=True,
             数据源list.pop(i)
 
     if 元素值列表:
-        if not isinstance(元素值列表, list):
+        if not isinstance(元素值列表, (list,tuple)):
             元素值列表 = [元素值列表]
         for i in 元素值列表:
             if i in 数据源list:
@@ -1375,14 +1375,14 @@ def list去掉指定项_多层list(数据源list, 多层序号字符串_list=Non
             list去掉指定项(临时list,序号list[-1],序号从0开始,元素值列表=None,不改变原数组=False)
 
     if 元素值列表:
-        if not isinstance(元素值列表, list):
+        if not isinstance(元素值列表, (list, tuple)):
             元素值列表 = [元素值列表]
         for 元素值 in 元素值列表:
             临时list = 数据源list
             def 递归删除list中的指定元素(数据源list, 元素值):
                 list去掉指定项(数据源list, None, 序号从0开始, 元素值列表=[元素值], 不改变原数组=False)
                 for i in 数据源list:
-                    if isinstance(i, list):
+                    if isinstance(i, (list, tuple)):
                         递归删除list中的指定元素(i, 元素值)
             递归删除list中的指定元素(临时list,元素值)
 
@@ -1402,7 +1402,7 @@ def getDictValue(my_dict, key="", default=None, 分隔符="."):
         key = key[start_index:end_index + 1]
         keys = key.split(分隔符)
         for key in keys:
-            if isinstance(my_dict, list):
+            if isinstance(my_dict, (list, tuple)):
                 my_dict = my_dict[int(key)]
             else:
                 my_dict = my_dict[key]
@@ -1415,12 +1415,12 @@ def setDictValue(mydict, key, value, 分隔符='.'):
     length = len(keys)
     for index, i in enumerate(key.split(分隔符)):
         if int(index) + 1 == length:
-            if isinstance(mydict, list):
+            if isinstance(mydict, (list, tuple)):
                 mydict[int(i)] = value
             else:
                 mydict[i] = value
         else:
-            if isinstance(mydict, list):
+            if isinstance(mydict, (list, tuple)):
                 mydict = mydict[int(i)]
             else:
                 mydict = mydict[i]
