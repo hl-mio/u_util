@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2021-03-31
+# @Time    : 2021-04-26
 # @Author  : hlmio
 import hashlib
 import json
@@ -78,6 +78,9 @@ def 获取excel表头_list(sheet, 表头行下标):
                 表头list[j] = f"{表头list[j]}-{cell_value}"
     表头list = stream(表头list).map(lambda i: i[1:]).collect()
     return 表头list
+
+def getExcel表头_list(sheet, 表头行下标):
+    return 获取excel表头_list(sheet, 表头行下标)
 
 def is第一行的合并单元格(sheet, 行下标, 列下标):
     merged = sheet.merged_cells
@@ -544,6 +547,9 @@ def isdir(文件全路径):
         else:
             return True
 
+def pwd(文件全路径):
+    return os.path.abspath(文件全路径)
+
 def ls(文件全路径, 包含前缀=True, 选项=""):
     选项 = 选项.lower()
     if not exist(文件全路径):
@@ -574,17 +580,17 @@ def mkdir(文件全路径, 选项="-p"):
 def mk(文件全路径, 已有跳过_不删除=True, 选项="-p"):
     选项 = 选项.lower()
     if exist(文件全路径):
-        if not 已有跳过_不删除:
-            rm(文件全路径, "-rf")
-        else:
+        if 已有跳过_不删除:
             return
+        else:
+            rm(文件全路径, "-rf")
 
     if isdir(文件全路径):
         mkdir(文件全路径, 选项)
     else:
         所在目录 = get文件所在目录(文件全路径)
         if 所在目录 and (not exist(所在目录)):
-            mk(所在目录, 选项)
+            mkdir(所在目录, 选项)
         with open(文件全路径, "a"):
             pass
 
@@ -603,12 +609,9 @@ def rm(文件全路径, 选项="-rf"):
             os.remove(文件全路径)
 
 def clear(文件全路径, 选项="-rf"):
-    if isdir(文件全路径):
-        if not exist(文件全路径):
-            return
-        stream(ls(文件全路径)).forEach(lambda f: rm(f, 选项))
-    else:
-        rm(文件全路径, 选项)
+    if not isdir(文件全路径): rm(文件全路径, 选项); return;
+    if not exist(文件全路径): mk(文件全路径, 选项="-p"); return;
+    stream(ls(文件全路径)).forEach(lambda f: rm(f, 选项))
 
 def cp(旧文件, 新文件, 不删旧文件=True):
     旧文件类型 = "dir" if isdir(旧文件) else "file"
@@ -672,7 +675,7 @@ def getDeepFilePaths(baseFilePath, ext_list="txt", is_deep=True):
     _getDeepFilePaths(rst_filePaths, baseFilePath, ext_list, is_deep)
     return rst_filePaths
 def _getDeepFilePaths(rst_filePaths, baseFilePath, ext_list="txt", is_deep=True):
-    rst_filePaths += getCurrentFilePaths(baseFilePath, ext_list)
+    rst_filePaths += _getCurrentFilePaths(baseFilePath, ext_list)
     # 递归当前目录下的目录
     if is_deep:
         f_list = stream(os.listdir(baseFilePath)) \
@@ -681,7 +684,7 @@ def _getDeepFilePaths(rst_filePaths, baseFilePath, ext_list="txt", is_deep=True)
         stream(f_list) \
             .filter(lambda f: os.path.isdir(f)) \
             .forEach(lambda dir: _getDeepFilePaths(rst_filePaths, dir, ext_list, True))
-def getCurrentFilePaths(baseFilePath, ext_list="txt"):
+def _getCurrentFilePaths(baseFilePath, ext_list="txt"):
     rst_filePaths = []
     if not baseFilePath:
         baseFilePath = "."
@@ -1423,7 +1426,6 @@ def setDictValue(mydict, key, value, 分隔符='.'):
                 mydict = mydict[int(i)]
             else:
                 mydict = mydict[i]
-
 # endregion
 
 
@@ -1452,7 +1454,6 @@ class ListStream:
     def collect(self):
         return self.list
 
-
 class DictStream(ListStream):
     def __init__(self, my_dict={}):
         self.list = self.dict_to_list(my_dict)
@@ -1477,7 +1478,6 @@ class DictStream(ListStream):
         for i in old_list:
             new_dict[i["key"]] = i["value"]
         return new_dict
-
 
 def stream(iteration):
     def list_处理():
