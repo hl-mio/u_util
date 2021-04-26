@@ -1,4 +1,6 @@
-# coding:utf-8
+# -*- coding: utf-8 -*-
+# @Time    : 2021-03-31
+# @Author  : hlmio
 import hashlib
 import json
 import os
@@ -11,40 +13,20 @@ import uuid
 import re
 import traceback
 import ctypes
+import pytz
+from json import JSONEncoder
 from pathlib import Path
 from concurrent import futures
-from functools import wraps
-from functools import partial
-from json import JSONEncoder
+from functools import wraps,partial
+
 
 
 # region 未分类
 
 __lock_print = threading.Lock()
-
 def print_加锁(*args, **kwargs):
     with __lock_print:
         print(*args, **kwargs)
-
-
-def 每x行取第y行_生成器(x, y):
-    行数 = -1 - (y - 1)
-    while True:
-        行数 += 1
-        if 行数 % x == 0:
-            yield True
-        else:
-            yield False
-
-def 每x行取任意行_生成器(x, *args):
-    行数 = -1
-    while True:
-        行数 += 1
-        余数 = 行数 % x
-        if (余数 + 1) in args:
-            yield True
-        else:
-            yield False
 
 def change_locals(frame, 修改表={}):
     frame.f_locals.update(修改表)
@@ -53,29 +35,120 @@ def change_locals(frame, 修改表={}):
         ctypes.c_int(0)
     )
 
-# 文件名添加数字后缀以避免重名
-def 文件名防重_追加数字(filename, base_dir="", is_中间加斜杠=False, is_数字前加下划线=True, 后缀数字=2, 步长=1):
-    if is_中间加斜杠:
-        base_dir = base_dir + "/"
-    输出文件 = base_dir + filename
-
-    # 确定输出的文件名
-    前缀字符 = os.path.splitext(输出文件)[0]
-    后缀类型 = os.path.splitext(输出文件)[1]
-    while os.path.exists(输出文件):
-        if is_数字前加下划线:
-            输出文件 = f"{前缀字符}_{后缀数字}{后缀类型}"
-        else:
-            输出文件 = f"{前缀字符}{后缀数字}{后缀类型}"
-        后缀数字 += 步长
-
-    match结果 = re.match(f"({base_dir})([\s\S]*)", 输出文件)
-    if match结果:
-        return match结果.group(2)
-    else:
-        return 输出文件
-
 # endregion 未分类
+
+
+# region excel
+import xlrd
+
+def get合并单元格(sheet, 行下标, 列下标):
+    单元格值 = sheet.cell_value(行下标, 列下标)
+    merged = sheet.merged_cells
+    for (row_index_min, row_index_max, col_index_min, col_index_max) in merged:
+        if row_index_min <= 行下标  and 行下标 < row_index_max:
+            if col_index_min <= 列下标 and 列下标 < col_index_max:
+                单元格值 = sheet.cell_value(row_index_min, col_index_min)
+                break
+    return 单元格值
+
+def get合并单元格_整行(sheet, 行下标, 不强制判断合并单元格=True):
+    强制判断合并单元格 = not 不强制判断合并单元格
+    row = sheet.row_values(行下标)
+    for 列下标, value in enumerate(row):
+        if not value or 强制判断合并单元格:
+            row[列下标] = get合并单元格(sheet, 行下标, 列下标)
+    return row
+
+def 获取excel表头_list(sheet, 表头行下标):
+    if isinstance(表头行下标, int):
+        表头list = get合并单元格_整行(sheet, 表头行下标)
+        return stream(表头list).map(lambda i: str(i).strip()).collect()
+    assert not isinstance(表头行下标, (int, str))
+    sheet_columns = sheet.ncols
+    表头list = ["" for i in range(sheet_columns)]
+    表头行下标.sort()
+    for i in 表头行下标:
+        for j in range(sheet_columns):
+            if is合并单元格(sheet,i,j):
+                if is第一行的合并单元格(sheet, i, j):
+                    cell_value = get合并单元格(sheet, i, j)
+                    表头list[j] = f"{表头list[j]}-{cell_value}"
+            else:
+                cell_value = sheet.cell_value(i, j)
+                表头list[j] = f"{表头list[j]}-{cell_value}"
+    表头list = stream(表头list).map(lambda i: i[1:]).collect()
+    return 表头list
+
+def is第一行的合并单元格(sheet, 行下标, 列下标):
+    merged = sheet.merged_cells
+    for (row_index_min, row_index_max, col_index_min, col_index_max) in merged:
+        if row_index_min == 行下标 :
+            if col_index_min <= 列下标 and 列下标 < col_index_max :
+                return True
+    return False
+
+def is合并单元格(sheet, 行下标, 列下标):
+    merged = sheet.merged_cells
+    for (row_index_min, row_index_max, col_index_min, col_index_max) in merged:
+        if row_index_min <= 行下标 and 行下标 < row_index_max:
+            if col_index_min <= 列下标 and 列下标 < col_index_max:
+                return True
+    return False
+# endregion
+
+
+# region shell
+import subprocess
+import platform
+
+
+def is_linux_system():
+    return 'linux' in platform.system().lower()
+
+def is_windows_system():
+    return 'windows' in platform.system().lower()
+
+def shell(cmd, stdout=subprocess.PIPE, encoding="utf8", shell=True, check=True, **kwargs):
+    return subprocess.run(cmd, stdout=stdout, encoding=encoding, shell=shell, check=check, **kwargs)\
+                    .stdout
+# endregion
+
+
+# region 生成器
+def 每x行取第y行_生成器类(x, y):
+    行数 = -1 - (y - 1)
+    while True:
+        行数 += 1
+        if 行数 % x == 0:
+            yield True
+        else:
+            yield False
+
+
+def 每x行取任意行_生成器类(x, 行编号=[]):
+    if isinstance(行编号, int):
+        行编号 = [行编号]
+    行数 = -1
+    while True:
+        行数 += 1
+        余数 = 行数 % x
+        if (余数 + 1) in 行编号:
+            yield True
+        else:
+            yield False
+
+
+def 计时点_生成器类(几个点一组=3, 几个组换行=5, 输出的点="."):
+    每x行取第x行 = 每x行取第y行_生成器类(几个点一组, 几个点一组)
+    每y行取第y行 = 每x行取第y行_生成器类(几个点一组 * 几个组换行, 几个点一组 * 几个组换行)
+    while True:
+        最终输出 = 输出的点
+        if next(每x行取第x行):
+            最终输出 += " "
+        if next(每y行取第y行):
+            最终输出 += "\n"
+        yield 最终输出
+# endregion
 
 
 # region 装饰器
@@ -160,6 +233,8 @@ def 线程模式(func):
 # endregion
 
 # region 定时任务
+from apscheduler.executors.pool import ThreadPoolExecutor,ProcessPoolExecutor
+from apscheduler.schedulers.background import BackgroundScheduler
 
 _scheduler = None
 _定时任务列表 = []
@@ -460,35 +535,33 @@ def to_变量名(变量):
 def exist(文件全路径):
     return os.path.exists(文件全路径)
 
-
 def isdir(文件全路径):
     if exist(文件全路径):
         return os.path.isdir(文件全路径)
     else:
-        文件后缀 = get文件后缀(文件全路径)
-        if not 文件后缀:
-            return True
-        else:
+        if get文件后缀(文件全路径):
             return False
-
-
-def ls(文件全路径, 选项="", 要包含前缀=False):
-    选项 = 选项.lower()
-    if exist(文件全路径):
-        if isdir(文件全路径):
-            if ("p" in 选项) or ("r" in 选项):
-                return getAllFilePaths(文件全路径)
-            else:
-                if 要包含前缀:
-                    return stream(os.listdir(文件全路径)) \
-                        .map(lambda i: os.path.join(文件全路径, i)).collect()
-                else:
-                    return os.listdir(文件全路径)
         else:
-            return [文件全路径];
-    else:
-        return []
+            return True
 
+def ls(文件全路径, 包含前缀=True, 选项=""):
+    选项 = 选项.lower()
+    if not exist(文件全路径):
+        return []
+    if not isdir(文件全路径):
+        return [文件全路径]
+
+    if ("p" in 选项) or ("r" in 选项):
+        filePaths = getAllFilePaths(文件全路径, is_deep=True)
+        if not 包含前缀:
+            filePaths = stream(filePaths).map(lambda i: get文件名(i)).collect()
+        return filePaths
+    else:
+        if 包含前缀:
+            return stream(os.listdir(文件全路径)) \
+                    .map(lambda i: os.path.join(文件全路径, i)).collect()
+        else:
+            return os.listdir(文件全路径)
 
 def mkdir(文件全路径, 选项="-p"):
     选项 = 选项.lower()
@@ -498,12 +571,11 @@ def mkdir(文件全路径, 选项="-p"):
         else:
             os.mkdir(文件全路径)
 
-
-def mk(文件全路径, 选项="-p", 要删除旧文件=False):
+def mk(文件全路径, 已有跳过_不删除=True, 选项="-p"):
     选项 = 选项.lower()
     if exist(文件全路径):
-        if 要删除旧文件:
-            rm(文件全路径)
+        if not 已有跳过_不删除:
+            rm(文件全路径, "-rf")
         else:
             return
 
@@ -515,7 +587,6 @@ def mk(文件全路径, 选项="-p", 要删除旧文件=False):
             mk(所在目录, 选项)
         with open(文件全路径, "a"):
             pass
-
 
 def rm(文件全路径, 选项="-rf"):
     if exist(文件全路径):
@@ -531,30 +602,23 @@ def rm(文件全路径, 选项="-rf"):
         else:
             os.remove(文件全路径)
 
+def clear(文件全路径, 选项="-rf"):
+    if isdir(文件全路径):
+        if not exist(文件全路径):
+            return
+        stream(ls(文件全路径)).forEach(lambda f: rm(f, 选项))
+    else:
+        rm(文件全路径, 选项)
 
-def get文件后缀(文件全路径):
-    return os.path.splitext(文件全路径)[1]
-
-
-def get文件名(文件全路径):
-    return os.path.basename(文件全路径)
-
-
-def get文件所在目录(文件全路径):
-    return os.path.dirname(文件全路径)
-
-
-def basename(文件全路径):
-    return get文件名(文件全路径)
-
-
-def dirname(文件全路径):
-    return get文件所在目录(文件全路径)
-
-
-def cp(旧文件, 新文件, 要删除旧文件=False):
+def cp(旧文件, 新文件, 不删旧文件=True):
     旧文件类型 = "dir" if isdir(旧文件) else "file"
     新文件类型 = "dir" if isdir(新文件) else "file"
+
+    # 确保文件夹存在
+    if 新文件类型 == "dir":
+        mk(新文件)
+    if not exist(get文件所在目录(新文件)):
+        mk(get文件所在目录(新文件))
 
     def file_file():
         # shutil.copyfile(旧文件,新文件)  # 只复制内容
@@ -588,23 +652,65 @@ def cp(旧文件, 新文件, 要删除旧文件=False):
     }
     switch.get(f"{旧文件类型}-{新文件类型}", default)()
 
-    if 要删除旧文件:
-        rm(旧文件)
+    if not 不删旧文件:
+        rm(旧文件, "-rf")
 
 
-def getAllFilePaths(baseFilePath, is_deep=True, rst_filePaths=[]):
-    if not baseFilePath:
-        baseFilePath = "."
-    # 获取当前目录下的所有文件名
-    f_list = stream(ls(baseFilePath, 选项="", 要包含前缀=True)) \
-        .collect()
-    rst_filePaths += f_list
+def get文件名(文件全路径):
+    return os.path.basename(文件全路径)
+def get文件后缀(文件全路径):
+    return os.path.splitext(文件全路径)[1]
+def get文件所在目录(文件全路径):
+    return os.path.dirname(文件全路径)
+
+
+def getAllFilePaths(baseFilePath, is_deep=True):
+    return getDeepFilePaths(baseFilePath, "*", is_deep)
+# 递归获取 指定目录下，拥有指定后缀，的文件路径
+def getDeepFilePaths(baseFilePath, ext_list="txt", is_deep=True):
+    rst_filePaths = []
+    _getDeepFilePaths(rst_filePaths, baseFilePath, ext_list, is_deep)
+    return rst_filePaths
+def _getDeepFilePaths(rst_filePaths, baseFilePath, ext_list="txt", is_deep=True):
+    rst_filePaths += getCurrentFilePaths(baseFilePath, ext_list)
     # 递归当前目录下的目录
     if is_deep:
+        f_list = stream(os.listdir(baseFilePath)) \
+                    .map(lambda fileName: os.path.join(baseFilePath, fileName)) \
+                    .collect()
         stream(f_list) \
-            .filter(lambda f: isdir(f)) \
-            .forEach(lambda dir: getAllFilePaths(dir, True, rst_filePaths))
+            .filter(lambda f: os.path.isdir(f)) \
+            .forEach(lambda dir: _getDeepFilePaths(rst_filePaths, dir, ext_list, True))
+def getCurrentFilePaths(baseFilePath, ext_list="txt"):
+    rst_filePaths = []
+    if not baseFilePath:
+        baseFilePath = "."
+    # 处理ext后缀
+    is_all_ext = False
+    if not isinstance(ext_list, (list,tuple)):
+        ext_list = [ext_list]
+    selectExt_list = stream(ext_list).map(lambda i: i if (i and i[0]==".") else f".{i}").collect()
+    if ("." in selectExt_list) or (".None" in selectExt_list):
+        selectExt_list.append("")
+    if (".*" in selectExt_list):
+        is_all_ext = True
+    selectExt_list = stream(selectExt_list).filter(lambda i: i!="." and i!=".None" and i!=".*").collect()
 
+    # 获取当前目录下的所有文件名
+    f_list = stream(os.listdir(baseFilePath)) \
+                .map(lambda fileName: os.path.join(baseFilePath,fileName)) \
+                .collect()
+
+    if is_all_ext:
+        rst_filePaths += stream(f_list) \
+                            .filter(lambda f: not os.path.isdir(f)) \
+                            .collect()
+    else:
+        # 将当前目录下后缀名为指定后缀的文件，放入rst_filePaths列表
+        stream(f_list) \
+            .filter(lambda f: not os.path.isdir(f)) \
+            .filter(lambda f: os.path.splitext(f)[1] in selectExt_list) \
+            .forEach(lambda f: rst_filePaths.append(f))
     return rst_filePaths
 
 # endregion fileSystem
@@ -1033,47 +1139,6 @@ def 序号(字符串模板="(1)"):
 # endregion 线程序号
 
 
-# region 随机延时
-
-# 固定延时x秒
-def delay_x_0_s(fixed_delay_num):
-    x = float(fixed_delay_num)
-    time.sleep(x)
-
-
-# 随机延时 0~y 秒
-def delay_0_y_s(random_delay_num):
-    y = float(random_delay_num)
-    time.sleep(random.random() * y)
-
-
-# 先固定延时x秒，再随机延时 0~y 秒
-# 延时区间，包前不包后
-def delay_x_y_s(fixed_delay_num, random_delay_num):
-    delay_x_0_s(fixed_delay_num)
-    delay_0_y_s(random_delay_num)
-
-
-# 随机延时 x~y 秒
-# 延时区间，包前不包后
-def delay_between_x_y_s(start_delay_num, end_delay_num):
-    x = float(start_delay_num)
-    y = float(end_delay_num)
-    delay_x_0_s(x)
-    delay_0_y_s(y - x)
-
-
-def delay_x_s(固定延时几秒):
-    delay_x_0_s(固定延时几秒)
-
-
-def delay_y_s(随机延时0到几秒):
-    delay_0_y_s(随机延时0到几秒)
-
-
-# endregion 随机延时
-
-
 # region 打点计时
 
 # region 转换秒数相关
@@ -1224,6 +1289,144 @@ def 计时(起始点=None, 结束点=None):
 # endregion 打点计时
 
 
+# region 随机延时
+
+# 固定延时x秒
+def delay_x_0_s(fixed_delay_num):
+    x = float(fixed_delay_num)
+    time.sleep(x)
+
+
+# 随机延时 0~y 秒
+def delay_0_y_s(random_delay_num):
+    y = float(random_delay_num)
+    time.sleep(random.random() * y)
+
+
+# 先固定延时x秒，再随机延时 0~y 秒
+# 延时区间，包前不包后
+def delay_x_y_s(fixed_delay_num, random_delay_num):
+    delay_x_0_s(fixed_delay_num)
+    delay_0_y_s(random_delay_num)
+
+
+# 随机延时 x~y 秒
+# 延时区间，包前不包后
+def delay_between_x_y_s(start_delay_num, end_delay_num):
+    x = float(start_delay_num)
+    y = float(end_delay_num)
+    delay_x_0_s(x)
+    delay_0_y_s(y - x)
+
+
+def delay_x_s(固定延时几秒):
+    delay_x_0_s(固定延时几秒)
+
+
+def delay_y_s(随机延时0到几秒):
+    delay_0_y_s(随机延时0到几秒)
+
+
+# endregion 随机延时
+
+
+# region 数据集合
+
+def list去掉指定项(数据源list, 序号列表=None, 序号从0开始=True, 元素值列表=None, 不改变原数组=True):
+    if 不改变原数组:
+        数据源list = to_self(数据源list)
+
+    if 序号列表:
+        if isinstance(序号列表, str):
+            序号列表 = int(序号列表)
+        if isinstance(序号列表, int):
+            序号列表 = [序号列表]
+        if not 序号从0开始:
+            序号列表 = stream(序号列表).map(lambda i: int(i) - 1).collect()
+        序号列表.sort(key=None, reverse=True)
+        for i in 序号列表:
+            数据源list.pop(i)
+
+    if 元素值列表:
+        if not isinstance(元素值列表, (list,tuple)):
+            元素值列表 = [元素值列表]
+        for i in 元素值列表:
+            if i in 数据源list:
+                数据源list.remove(i)
+
+    return 数据源list
+
+def list去掉指定项_多层list(数据源list, 多层序号字符串_list=None, 序号从0开始=True, 元素值列表=None, 不改变原数组=True, 序号分隔符="."):
+    if 不改变原数组:
+        数据源list = to_self(数据源list)
+
+    if 多层序号字符串_list:
+        if isinstance(多层序号字符串_list, str):
+            多层序号字符串_list = [多层序号字符串_list]
+        for 多层序号字符串 in 多层序号字符串_list:
+            序号list = 多层序号字符串.split(序号分隔符)
+            临时list = 数据源list
+            for i in 序号list[:-1]:
+                if 序号从0开始:
+                    临时list = 临时list[int(i)]
+                else:
+                    临时list = 临时list[int(i)-1]
+            list去掉指定项(临时list,序号list[-1],序号从0开始,元素值列表=None,不改变原数组=False)
+
+    if 元素值列表:
+        if not isinstance(元素值列表, (list, tuple)):
+            元素值列表 = [元素值列表]
+        for 元素值 in 元素值列表:
+            临时list = 数据源list
+            def 递归删除list中的指定元素(数据源list, 元素值):
+                list去掉指定项(数据源list, None, 序号从0开始, 元素值列表=[元素值], 不改变原数组=False)
+                for i in 数据源list:
+                    if isinstance(i, (list, tuple)):
+                        递归删除list中的指定元素(i, 元素值)
+            递归删除list中的指定元素(临时list,元素值)
+
+    return 数据源list
+
+
+# 获取多层dict的值
+def getDictValue(my_dict, key="", default=None, 分隔符="."):
+    if not key:
+        return default
+
+    try:
+        start_index = 0
+        end_index = len(key) - 1
+        if key[0] == 分隔符: start_index += 1
+        if key[end_index] == 分隔符: end_index -= 1
+        key = key[start_index:end_index + 1]
+        keys = key.split(分隔符)
+        for key in keys:
+            if isinstance(my_dict, (list, tuple)):
+                my_dict = my_dict[int(key)]
+            else:
+                my_dict = my_dict[key]
+        return my_dict
+    except:
+        return default
+# 设置多层dict的值
+def setDictValue(mydict, key, value, 分隔符='.'):
+    keys = key.split(分隔符)
+    length = len(keys)
+    for index, i in enumerate(key.split(分隔符)):
+        if int(index) + 1 == length:
+            if isinstance(mydict, (list, tuple)):
+                mydict[int(i)] = value
+            else:
+                mydict[i] = value
+        else:
+            if isinstance(mydict, (list, tuple)):
+                mydict = mydict[int(i)]
+            else:
+                mydict = mydict[i]
+
+# endregion
+
+
 # region 流式计算
 
 class ListStream:
@@ -1295,94 +1498,3 @@ def stream(iteration):
     return switch.get(repr(type(iteration)), default)()
 
 # endregion 流式计算
-
-
-# region 数据集合
-
-# 获取多层dict的值
-def getDictValue(my_dict, key="", default=None, 分隔符="."):
-    if not key:
-        if default:
-            return default
-        else:
-            return my_dict
-
-    try:
-        start_index = 0
-        end_index = len(key) - 1
-        if key[0] == 分隔符: start_index += 1
-        if key[end_index] == 分隔符: end_index -= 1
-        key = key[start_index:end_index + 1]
-        keys = key.split(分隔符)
-        for key in keys:
-            if isinstance(my_dict, list):
-                my_dict = my_dict[int(key)]
-            else:
-                my_dict = my_dict[key]
-        return my_dict
-    except:
-        return default
-
-# 设置多层dict的值
-def setDictValue(mydict, key, value, 分隔符='.'):
-    keys = key.split(分隔符)
-    length = len(keys)
-    for index, i in enumerate(key.split(分隔符)):
-        if int(index) + 1 == length:
-            if isinstance(mydict, list):
-                mydict[int(i)] = value
-            else:
-                mydict[i] = value
-        else:
-            if isinstance(mydict, list):
-                mydict = mydict[int(i)]
-            else:
-                mydict = mydict[i]
-
-
-# 递归获取 指定目录下，拥有指定后缀，的文件路径
-def getDeepFilePaths(baseFilePath, ext="txt", is_deep=True, rst_filePaths=[]):
-    if not baseFilePath:
-        baseFilePath = "."
-    # 处理ext后缀
-    is_all_ext = False
-    selectExt_list = []
-    if not ext:
-        selectExt_list.append("")
-    else:
-        if ext == "*":
-            is_all_ext = True
-        elif isinstance(ext, str):
-            selectExt_list.append(f".{ext}")
-        elif isinstance(ext, list):
-            selectExt_list = stream(ext).filter(lambda i: i).map(lambda i: f".{i}").collect()
-            if "" in ext:
-                selectExt_list.append("")
-        else:
-            raise Exception("ext的类型不支持")
-
-    # 获取当前目录下的所有文件名
-    f_list = stream(os.listdir(baseFilePath)) \
-        .map(lambda fileName: f"{baseFilePath}/{fileName}") \
-        .collect()
-
-    if is_all_ext:
-        rst_filePaths += stream(f_list) \
-            .filter(lambda f: not os.path.isdir(f)) \
-            .collect()
-    else:
-        # 将当前目录下后缀名为指定后缀的文件，放入rst_filePaths列表
-        stream(f_list) \
-            .filter(lambda f: not os.path.isdir(f)) \
-            .filter(lambda f: os.path.splitext(f)[1] in selectExt_list) \
-            .forEach(lambda f: rst_filePaths.append(f))
-
-    # 递归当前目录下的目录
-    if is_deep:
-        stream(f_list) \
-            .filter(lambda f: os.path.isdir(f)) \
-            .forEach(lambda dir: getDeepFilePaths(dir, ext, True, rst_filePaths))
-
-    return rst_filePaths
-
-# endregion
