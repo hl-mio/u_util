@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# @Time    : 2021-05-12
+# @Author  : hlmio
 from u_工具 import *
 
 oracle_conf_a1 = {
