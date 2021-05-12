@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2021-04-26
+# @Time    : 2021-05-12
 # @Author  : hlmio
 import hashlib
 import json
@@ -97,6 +97,25 @@ def is合并单元格(sheet, 行下标, 列下标):
             if col_index_min <= 列下标 and 列下标 < col_index_max:
                 return True
     return False
+
+
+from openpyxl.utils import get_column_letter, column_index_from_string
+def to_excel序号_字母(数字):
+    if isinstance(数字,str): return 数字
+    return get_column_letter(数字)
+def to_excel序号_数字(字母):
+    if isinstance(字母, int): return 字母
+    return column_index_from_string(字母)
+ 
+def get_excel序号_列表(开头序号_字母或数字__包括开头,结尾序号_字母或数字__包括结尾,生成字母列表=True):
+    开头序号 = to_excel序号_数字(开头序号_字母或数字__包括开头)
+    结尾序号 = to_excel序号_数字(结尾序号_字母或数字__包括结尾)
+    返回列表 = []
+    for i in range(开头序号,结尾序号+1):
+        返回列表.append(i)
+    if 生成字母列表:
+        返回列表 = stream(返回列表).map(lambda i: to_excel序号_字母(i)).collect()
+    return 返回列表
 # endregion
 
 
