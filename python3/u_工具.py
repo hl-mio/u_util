@@ -40,10 +40,16 @@ def change_locals(frame, 修改表={}):
 
 # region excel
 import xlrd
+import openpyxl
+
 excel类型 = {
     "xlrd":{
         "workbook": "<class 'xlrd.book.Book'>",
         "sheet": "<class 'xlrd.sheet.Sheet'>",
+    },
+    "openpyxl": {
+        "workbook": "<class 'openpyxl.workbook.workbook.Workbook'>",
+        "sheet": "<class 'openpyxl.worksheet.worksheet.Worksheet'>",
     }
 }
 
@@ -51,39 +57,66 @@ excel类型 = {
 def get_excel_workbook(文件路径, 底层实现="xlrd"):
     底层实现 = 底层实现.lower()
     if 底层实现.lower() == "xlrd":
-        return xlrd.open_workbook(文件路径)
+        return get_excel_workbook__xlrd(文件路径)
+    if 底层实现.lower() == "openpyxl":
+        return get_excel_workbook__openpyxl(文件路径)
     return Exception("底层实现未支持")
+def get_excel_workbook__xlrd(文件路径):
+    return xlrd.open_workbook(文件路径)
+def get_excel_workbook__openpyxl(文件路径):
+    return openpyxl.load_workbook(文件路径)
+
 def get_excel_sheet(文件路径, sheet下标=0, sheet名=None, 底层实现="xlrd"):
     底层实现 = 底层实现.lower()
     if 底层实现 == "xlrd":
-        workbook = get_excel_workbook(文件路径, 底层实现=底层实现)
-        if sheet名:
-            return workbook.sheet_by_name(sheet名)
-        else:
-            return workbook.sheet_by_index(int(sheet下标))
+        return get_excel_sheet__xlrd(文件路径,sheet下标,sheet名)
+    if 底层实现 == "openpyxl":
+        return get_excel_sheet__openpyxl(文件路径,sheet下标,sheet名)
     return Exception("底层实现未支持")
+def get_excel_sheet__xlrd(文件路径, sheet下标=0, sheet名=None):
+    workbook = get_excel_workbook__xlrd(文件路径)
+    if sheet名:
+        return workbook.sheet_by_name(sheet名)
+    else:
+        return workbook.sheet_by_index(int(sheet下标))
+def get_excel_sheet__openpyxl(文件路径, sheet下标=0, sheet名=None):
+    workbook = get_excel_workbook__openpyxl(文件路径)
+    if sheet名:
+        return workbook.get_sheet_by_name(sheet名)
+    else:
+        return workbook.worksheets[sheet下标]
+
+
 
 
 def get_excel_行数(sheet):
     def xlrd_sheet():
         return sheet.nrows
 
+    def openpyxl_sheet():
+        return sheet.max_row
+
     def default():
         raise Exception("参数类型未支持")
 
     switch = {
         excel类型["xlrd"]["sheet"] : xlrd_sheet,
+        excel类型["openpyxl"]["sheet"]: openpyxl_sheet,
     }
     return switch.get(repr(type(sheet)), default)()
 def get_excel_列数(sheet):
     def xlrd_sheet():
         return sheet.ncols
 
+    def openpyxl_sheet():
+        return sheet.max_column
+
     def default():
         raise Exception("参数类型未支持")
 
     switch = {
         excel类型["xlrd"]["sheet"] : xlrd_sheet,
+        excel类型["openpyxl"]["sheet"]: openpyxl_sheet,
     }
     return switch.get(repr(type(sheet)), default)()
 
@@ -92,11 +125,16 @@ def get_excel_值(sheet, 行下标, 列下标):
     def xlrd_sheet():
         return _get_excel_合并单元格__xlrd(sheet, 行下标, 列下标)
 
+    # 待处理合并单元格
+    def openpyxl_sheet():
+        return sheet.cell(row=行下标+1, column=列下标+1).value
+
     def default():
         raise Exception("参数类型未支持")
 
     switch = {
         excel类型["xlrd"]["sheet"] : xlrd_sheet,
+        excel类型["openpyxl"]["sheet"]: openpyxl_sheet,
     }
     return switch.get(repr(type(sheet)), default)()
 def get_excel_值_by序号(sheet, 行序号, 列序号):
@@ -147,7 +185,7 @@ def get_excel_表头(sheet, 表头行下标__int或list):
     def xlrd_sheet():
         表头行下标 = 表头行下标__int或list
         if isinstance(表头行下标, int):
-            表头list = get合并单元格_整行(sheet, 表头行下标)
+            表头list = get_excel_行(sheet, 表头行下标)
             return stream(表头list).map(lambda i: str(i).strip()).collect()
         assert not isinstance(表头行下标, (int, str))
         sheet_columns = sheet.ncols
@@ -155,9 +193,9 @@ def get_excel_表头(sheet, 表头行下标__int或list):
         表头行下标.sort()
         for i in 表头行下标:
             for j in range(sheet_columns):
-                if is合并单元格(sheet, i, j):
-                    if is第一行的合并单元格(sheet, i, j):
-                        cell_value = get合并单元格(sheet, i, j)
+                if _is_excel_合并单元格__xlrd(sheet, i, j):
+                    if _is_excel_第一行的合并单元格__xlrd(sheet, i, j):
+                        cell_value = get_excel_值(sheet, i, j)
                         表头list[j] = f"{表头list[j]}-{cell_value}"
                 else:
                     cell_value = sheet.cell_value(i, j)
