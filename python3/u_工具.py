@@ -40,82 +40,189 @@ def change_locals(frame, 修改表={}):
 
 # region excel
 import xlrd
+excel类型 = {
+    "xlrd":{
+        "workbook": "<class 'xlrd.book.Book'>",
+        "sheet": "<class 'xlrd.sheet.Sheet'>",
+    }
+}
 
-def get合并单元格(sheet, 行下标, 列下标):
-    单元格值 = sheet.cell_value(行下标, 列下标)
-    merged = sheet.merged_cells
-    for (row_index_min, row_index_max, col_index_min, col_index_max) in merged:
-        if row_index_min <= 行下标  and 行下标 < row_index_max:
-            if col_index_min <= 列下标 and 列下标 < col_index_max:
-                单元格值 = sheet.cell_value(row_index_min, col_index_min)
-                break
-    return 单元格值
 
-def get合并单元格_整行(sheet, 行下标, 不强制判断合并单元格=True):
-    强制判断合并单元格 = not 不强制判断合并单元格
-    row = sheet.row_values(行下标)
-    for 列下标, value in enumerate(row):
-        if not value or 强制判断合并单元格:
-            row[列下标] = get合并单元格(sheet, 行下标, 列下标)
-    return row
+def get_excel_workbook(文件路径, 底层实现="xlrd"):
+    底层实现 = 底层实现.lower()
+    if 底层实现.lower() == "xlrd":
+        return xlrd.open_workbook(文件路径)
+    return Exception("底层实现未支持")
+def get_excel_sheet(文件路径, sheet下标=0, sheet名=None, 底层实现="xlrd"):
+    底层实现 = 底层实现.lower()
+    if 底层实现 == "xlrd":
+        workbook = get_excel_workbook(文件路径, 底层实现=底层实现)
+        if sheet名:
+            return workbook.sheet_by_name(sheet名)
+        else:
+            return workbook.sheet_by_index(int(sheet下标))
+    return Exception("底层实现未支持")
 
-def 获取excel表头_list(sheet, 表头行下标):
-    if isinstance(表头行下标, int):
-        表头list = get合并单元格_整行(sheet, 表头行下标)
-        return stream(表头list).map(lambda i: str(i).strip()).collect()
-    assert not isinstance(表头行下标, (int, str))
-    sheet_columns = sheet.ncols
-    表头list = ["" for i in range(sheet_columns)]
-    表头行下标.sort()
-    for i in 表头行下标:
-        for j in range(sheet_columns):
-            if is合并单元格(sheet,i,j):
-                if is第一行的合并单元格(sheet, i, j):
-                    cell_value = get合并单元格(sheet, i, j)
+
+def get_excel_行数(sheet):
+    def xlrd_sheet():
+        return sheet.nrows
+
+    def default():
+        raise Exception("参数类型未支持")
+
+    switch = {
+        excel类型["xlrd"]["sheet"] : xlrd_sheet,
+    }
+    return switch.get(repr(type(sheet)), default)()
+def get_excel_列数(sheet):
+    def xlrd_sheet():
+        return sheet.ncols
+
+    def default():
+        raise Exception("参数类型未支持")
+
+    switch = {
+        excel类型["xlrd"]["sheet"] : xlrd_sheet,
+    }
+    return switch.get(repr(type(sheet)), default)()
+
+
+def get_excel_值(sheet, 行下标, 列下标):
+    def xlrd_sheet():
+        return _get_excel_合并单元格__xlrd(sheet, 行下标, 列下标)
+
+    def default():
+        raise Exception("参数类型未支持")
+
+    switch = {
+        excel类型["xlrd"]["sheet"] : xlrd_sheet,
+    }
+    return switch.get(repr(type(sheet)), default)()
+def get_excel_值_by序号(sheet, 行序号, 列序号):
+    行下标 = to_excel序号_数字(行序号) - 1
+    列下标 = to_excel序号_数字(列序号) - 1
+    return get_excel_值(sheet, 行下标, 列下标)
+def get_excel_值_by单词(sheet, 单词="A1"):
+    单词match = re.match("([a-z A-Z]*)([0-9]*)([a-z A-Z]*)", 单词)
+    列序号 = 单词match.group(1)
+    if not 列序号: 列序号 = 单词match.group(3)
+    行下标 = int(单词match.group(2)) - 1
+    列下标 = to_excel序号_数字(列序号) - 1
+    return get_excel_值(sheet, 行下标, 列下标)
+
+
+def get_excel_行(sheet, 行下标):
+    def xlrd_sheet():
+        值list = []
+        for j in range(get_excel_列数(sheet)):
+            值list.append(get_excel_值(sheet,行下标,j))
+        return 值list
+
+    def default():
+        raise Exception("参数类型未支持")
+
+    switch = {
+        excel类型["xlrd"]["sheet"] : xlrd_sheet,
+    }
+    return switch.get(repr(type(sheet)), default)()
+def get_excel_列(sheet, 列下标):
+    def xlrd_sheet():
+        值list = []
+        for i in range(get_excel_行数(sheet)):
+            值list.append(get_excel_值(sheet, i, 列下标))
+        return 值list
+        return sheet.ncols
+
+    def default():
+        raise Exception("参数类型未支持")
+
+    switch = {
+        excel类型["xlrd"]["sheet"] : xlrd_sheet,
+    }
+    return switch.get(repr(type(sheet)), default)()
+
+
+def get_excel_表头(sheet, 表头行下标__int或list):
+    def xlrd_sheet():
+        表头行下标 = 表头行下标__int或list
+        if isinstance(表头行下标, int):
+            表头list = get合并单元格_整行(sheet, 表头行下标)
+            return stream(表头list).map(lambda i: str(i).strip()).collect()
+        assert not isinstance(表头行下标, (int, str))
+        sheet_columns = sheet.ncols
+        表头list = ["" for i in range(sheet_columns)]
+        表头行下标.sort()
+        for i in 表头行下标:
+            for j in range(sheet_columns):
+                if is合并单元格(sheet, i, j):
+                    if is第一行的合并单元格(sheet, i, j):
+                        cell_value = get合并单元格(sheet, i, j)
+                        表头list[j] = f"{表头list[j]}-{cell_value}"
+                else:
+                    cell_value = sheet.cell_value(i, j)
                     表头list[j] = f"{表头list[j]}-{cell_value}"
-            else:
-                cell_value = sheet.cell_value(i, j)
-                表头list[j] = f"{表头list[j]}-{cell_value}"
-    表头list = stream(表头list).map(lambda i: i[1:]).collect()
-    return 表头list
+        表头list = stream(表头list).map(lambda i: i[1:]).collect()
+        return 表头list
 
-def getExcel表头_list(sheet, 表头行下标):
-    return 获取excel表头_list(sheet, 表头行下标)
+    def default():
+        raise Exception("参数类型未支持")
 
-def is第一行的合并单元格(sheet, 行下标, 列下标):
-    merged = sheet.merged_cells
-    for (row_index_min, row_index_max, col_index_min, col_index_max) in merged:
-        if row_index_min == 行下标 :
-            if col_index_min <= 列下标 and 列下标 < col_index_max :
-                return True
-    return False
+    switch = {
+        excel类型["xlrd"]["sheet"] : xlrd_sheet,
+    }
+    return switch.get(repr(type(sheet)), default)()
 
-def is合并单元格(sheet, 行下标, 列下标):
+
+
+
+from openpyxl.utils import get_column_letter, column_index_from_string
+def to_excel序号_字母(数字):
+    if isinstance(数字, str):
+        try:
+            数字 = int(数字)
+        except Exception as e: return 数字
+    return get_column_letter(数字)
+def to_excel序号_数字(字母):
+    if isinstance(字母, int): return 字母
+    return column_index_from_string(字母)
+def get_excel序号_列表(开头序号_字母或数字__包括开头, 结尾序号_字母或数字__包括结尾, 生成字母列表=True):
+    开头序号 = to_excel序号_数字(开头序号_字母或数字__包括开头)
+    结尾序号 = to_excel序号_数字(结尾序号_字母或数字__包括结尾)
+    返回列表 = []
+    for i in range(开头序号, 结尾序号 + 1):
+        返回列表.append(i)
+    if 生成字母列表:
+        返回列表 = stream(返回列表).map(lambda i: to_excel序号_字母(i)).collect()
+    return 返回列表
+
+
+
+
+def _get_excel_合并单元格__xlrd(sheet, 行下标, 列下标):
+    单元格值 = sheet.cell_value(行下标, 列下标)
+    if not 单元格值:
+        merged = sheet.merged_cells
+        for (row_index_min, row_index_max, col_index_min, col_index_max) in merged:
+            if row_index_min <= 行下标 and 行下标 < row_index_max:
+                if col_index_min <= 列下标 and 列下标 < col_index_max:
+                    单元格值 = sheet.cell_value(row_index_min, col_index_min)
+                    break
+    return 单元格值
+def _is_excel_合并单元格__xlrd(sheet, 行下标, 列下标):
     merged = sheet.merged_cells
     for (row_index_min, row_index_max, col_index_min, col_index_max) in merged:
         if row_index_min <= 行下标 and 行下标 < row_index_max:
             if col_index_min <= 列下标 and 列下标 < col_index_max:
                 return True
     return False
-
-
-from openpyxl.utils import get_column_letter, column_index_from_string
-def to_excel序号_字母(数字):
-    if isinstance(数字,str): return 数字
-    return get_column_letter(数字)
-def to_excel序号_数字(字母):
-    if isinstance(字母, int): return 字母
-    return column_index_from_string(字母)
- 
-def get_excel序号_列表(开头序号_字母或数字__包括开头,结尾序号_字母或数字__包括结尾,生成字母列表=True):
-    开头序号 = to_excel序号_数字(开头序号_字母或数字__包括开头)
-    结尾序号 = to_excel序号_数字(结尾序号_字母或数字__包括结尾)
-    返回列表 = []
-    for i in range(开头序号,结尾序号+1):
-        返回列表.append(i)
-    if 生成字母列表:
-        返回列表 = stream(返回列表).map(lambda i: to_excel序号_字母(i)).collect()
-    return 返回列表
+def _is_excel_第一行的合并单元格__xlrd(sheet, 行下标, 列下标):
+    merged = sheet.merged_cells
+    for (row_index_min, row_index_max, col_index_min, col_index_max) in merged:
+        if row_index_min == 行下标:
+            if col_index_min <= 列下标 and 列下标 < col_index_max:
+                return True
+    return False
 # endregion
 
 
