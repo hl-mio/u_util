@@ -1701,3 +1701,4 @@ def stream(iteration):
     return switch.get(repr(type(iteration)), default)()
 
 # endregion 流式计算
+
