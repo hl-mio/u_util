@@ -14,10 +14,10 @@ import re
 import traceback
 import ctypes
 import pytz
-from json import JSONEncoder
-from pathlib import Path
-from concurrent import futures
-from functools import wraps,partial
+import functools
+import concurrent
+import pathlib
+from functools import wraps
 
 
 
@@ -345,7 +345,7 @@ def 打点计时(func):
 # region 线程
 # -- 关于初始化区，扫描到几个@就执行几次
 
-__线程池_装饰专用 = futures.ThreadPoolExecutor(12)
+__线程池_装饰专用 = concurrent.futures.ThreadPoolExecutor(12)
 
 
 def 线程模式_改(is_VIP = False, VIP_name = None):  # 这里的参数，是给装饰器的参数
@@ -617,7 +617,7 @@ def to_self(obj):
 
 # region json
 
-class _MyEncoder(JSONEncoder):
+class _MyEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, datetime.datetime):
             return to_time_str(obj)
@@ -1151,7 +1151,7 @@ class 配置类:
         try:
             if 类型 == "json":
                 if 来源 == "filesystem" or 来源 == "file_system" or 来源 == "file" or 来源 == "fs":
-                    dict配置 = json.loads(Path(路径).read_text(encoding='UTF-8'))
+                    dict配置 = json.loads(pathlib.Path(路径).read_text(encoding='UTF-8'))
                 else:
                     raise Exception("配置加载失败，来源不支持")
             else:
