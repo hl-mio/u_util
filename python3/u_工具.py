@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
-# @Time    : 2021-07-02
+# -*- coding: gbk -*-
+# @Time    : 2021-07-03
 # @Author  : hlmio
 import hashlib
 import json
@@ -13,7 +13,6 @@ import uuid
 import re
 import traceback
 import ctypes
-import pytz
 import functools
 import pathlib
 import concurrent.futures
@@ -498,7 +497,7 @@ def 启动定时任务():
     }
     global _scheduler
     _scheduler = BackgroundScheduler(executors=__executors, job_defaults=__job_defaults,
-                                     timezone=pytz.timezone('Asia/Shanghai'))
+                                     timezone='Asia/Shanghai')
     for i in _定时任务列表:
         _scheduler.add_job(i["任务"], i["触发器类型"], i["原始函数args"], i["原始函数kwargs"], i["id"], *i["任务args"], **i["任务kwargs"])
     _scheduler.start()
@@ -515,12 +514,6 @@ def 启动定时任务_阻塞主线程():
 
 
 # region to_xxx
-
-def from_hex_to_byte(str):
-    return bytes.fromhex(str)
-def from_byte_to_hex(字节):
-    return 字节.hex()
-
 
 # region time  -- datetime.datetime是原点，是核心中间类
 
@@ -929,20 +922,29 @@ os.environ['NLS_LANG'] = 'SIMPLIFIED CHINESE_CHINA.AL32UTF8'
 _oracle_conf = {
     "host": "192.168.15.132",
     "port": 1521,
-    "user": "c##dba",
+    "username": "c##dba",
     "password": "oracle",
     "db": "orcl"
 }
 
+def __get_oracle_conf_vlaue(conf,key_list,default=""):
+    value = default
+    for key in key_list:
+        try:
+            value = conf[key]
+            return value
+        except:
+            continue
+    return value
 
 def _get_oracle_conf(new_conf={}):
     conf = {}
     conf["host"] = new_conf.get("host", _oracle_conf["host"])
     conf["port"] = new_conf.get("port", _oracle_conf["port"])
-    conf["user"] = new_conf.get("user", _oracle_conf["user"])
+    conf["username"] = __get_oracle_conf_vlaue(new_conf,["username","user","name","userName"],_oracle_conf["username"])
     conf["password"] = new_conf.get("password", _oracle_conf["password"])
     conf["db"] = new_conf.get("db", _oracle_conf["db"])
-    return f'{conf["user"]}/{conf["password"]}@{conf["host"]}:{conf["port"]}/{conf["db"]}'
+    return f'{conf["username"]}/{conf["password"]}@{conf["host"]}:{conf["port"]}/{conf["db"]}'
 
 
 class Oracle:
@@ -1707,4 +1709,3 @@ def stream(iteration):
     return switch.get(repr(type(iteration)), default)()
 
 # endregion 流式计算
-
