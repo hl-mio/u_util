@@ -1,5 +1,5 @@
 # -*- coding: gbk -*-
-# @Time    : 2021-07-03
+# @Time    : 2021-08-16
 # @Author  : hlmio
 import hashlib
 import json
@@ -514,6 +514,12 @@ def 启动定时任务_阻塞主线程():
 
 
 # region to_xxx
+
+def from_hex_to_byte(str):
+    return bytes.fromhex(str)
+def from_byte_to_hex(字节):
+    return 字节.hex()
+
 
 # region time  -- datetime.datetime是原点，是核心中间类
 
