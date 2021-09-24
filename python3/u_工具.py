@@ -1,4 +1,4 @@
-# -*- coding: gbk -*-
+# -*- coding: utf-8 -*-
 # @Time    : 2021-08-16
 # @Author  : hlmio
 import hashlib
@@ -918,6 +918,82 @@ def _getCurrentFilePaths(baseFilePath, ext_list="txt"):
 
 # region dao
 
+def __get_conf_vlaue(conf, key_list, default=""):
+    value = default
+    for key in key_list:
+        try:
+            value = conf[key]
+            return value
+        except:
+            continue
+    return value
+
+# region redis
+import redis as redis_py
+
+_redis_conf = {
+    "host": "127.0.0.1",
+    "port": 6375,
+    "username": "",
+    "password": "redis",
+    "db": 0,
+
+    "decode_responses": True,
+    "charset": "utf-8"
+}
+
+def _get_redis_conf(new_conf={}):
+    conf = {}
+    conf["host"] = new_conf.get("host", _redis_conf["host"])
+    conf["port"] = new_conf.get("port", _redis_conf["port"])
+    conf["username"] = __get_conf_vlaue(new_conf, ["username", "user", "name", "userName"], _redis_conf["username"])
+    conf["password"] = __get_conf_vlaue(new_conf, ["password", "pass", "pw"], _redis_conf["password"])
+    conf["db"] = __get_conf_vlaue(new_conf, ["db", "database"], _redis_conf["db"])
+
+    conf["decode_responses"] = __get_conf_vlaue(new_conf, ["decode_responses"], _redis_conf["decode_responses"])
+    conf["charset"] = __get_conf_vlaue(new_conf, ["charset"], _redis_conf["charset"])
+    return conf
+
+
+class Redis:
+    def __init__(self, conf=_get_redis_conf()):
+        self.conn = redis_py.StrictRedis(host=conf["host"], port=conf["port"], password=conf["password"], db=conf["db"], decode_responses=conf["decode_responses"], charset=conf["charset"])
+
+    def __del__(self):
+        if self.conn:
+            try:
+                self.conn.close()
+            except: pass
+
+    @staticmethod
+    def 实例化(new_conf={}):
+        conf = _get_redis_conf(new_conf)
+        return Redis(conf)
+
+
+    def 分布式锁_加锁(self, 锁名, 加锁人, 超时时间_秒=30):
+        rst = self.conn.set(name=锁名, value=加锁人, nx=True, ex=超时时间_秒)
+        return rst
+
+    def 分布式锁_解锁(self, 锁名, 加锁人):
+        lua = f"""
+            if redis.call('get', KEYS[1]) == ARGV[1] then 
+                return redis.call('del', KEYS[1])
+            else 
+                return 0 
+            end
+        """
+        cmd = self.conn.register_script(lua)
+        rst = cmd(keys=[锁名], args=[加锁人])
+        return rst
+
+
+def redis(new_conf={}):
+    return Redis.实例化(new_conf)
+
+
+# endregion oracle
+
 # region oracle
 import cx_Oracle
 
@@ -933,29 +1009,21 @@ _oracle_conf = {
     "db": "orcl"
 }
 
-def __get_oracle_conf_vlaue(conf,key_list,default=""):
-    value = default
-    for key in key_list:
-        try:
-            value = conf[key]
-            return value
-        except:
-            continue
-    return value
+
 
 def _get_oracle_conf(new_conf={}):
     conf = {}
     conf["host"] = new_conf.get("host", _oracle_conf["host"])
     conf["port"] = new_conf.get("port", _oracle_conf["port"])
-    conf["username"] = __get_oracle_conf_vlaue(new_conf,["username","user","name","userName"],_oracle_conf["username"])
+    conf["username"] = __get_conf_vlaue(new_conf, ["username", "user", "name", "userName"], _oracle_conf["username"])
     conf["password"] = new_conf.get("password", _oracle_conf["password"])
     conf["db"] = new_conf.get("db", _oracle_conf["db"])
-    return f'{conf["username"]}/{conf["password"]}@{conf["host"]}:{conf["port"]}/{conf["db"]}'
+    return conf
 
 
 class Oracle:
     def __init__(self, conf=_get_oracle_conf()):
-        self.conn = cx_Oracle.connect(conf)
+        self.conn = cx_Oracle.connect(f'{conf["username"]}/{conf["password"]}@{conf["host"]}:{conf["port"]}/{conf["db"]}')
         self.cursor = self.conn.cursor()
 
         self.count = 0
@@ -963,11 +1031,14 @@ class Oracle:
         self.lines = []
 
     def __del__(self):
+        if self.cursor:
+            try:
+                self.cursor.close()
+            except: pass
         if self.conn:
             try:
                 self.conn.close()
-            except:
-                pass
+            except: pass
 
     @staticmethod
     def 实例化(new_conf={}):
