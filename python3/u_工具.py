@@ -281,24 +281,7 @@ def _is_excel_第一行的合并单元格__xlrd(sheet, 行下标, 列下标):
             if col_index_min <= 列下标 and 列下标 < col_index_max:
                 return True
     return False
-# endregion
-
-
-# region shell
-import subprocess
-import platform
-
-
-def is_linux_system():
-    return 'linux' in platform.system().lower()
-
-def is_windows_system():
-    return 'windows' in platform.system().lower()
-
-def shell(cmd, stdout=subprocess.PIPE, encoding="utf8", shell=True, check=True, **kwargs):
-    return subprocess.run(cmd, stdout=stdout, encoding=encoding, shell=shell, check=check, **kwargs)\
-                    .stdout
-# endregion
+# endregion excel
 
 
 # region 生成器
@@ -335,7 +318,7 @@ def 计时点_生成器类(几个点一组=3, 几个组换行=5, 输出的点=".
         if next(每y行取第y行):
             最终输出 += "\n"
         yield 最终输出
-# endregion
+# endregion 生成器
 
 
 # region 装饰器
@@ -360,7 +343,7 @@ def 打点计时(func):
         return rst
 
     return inner
-# endregion
+# endregion 计时
 
 # region 线程
 # -- 关于初始化区，扫描到几个@就执行几次
@@ -417,7 +400,7 @@ def 线程模式(func):
     # endregion
     return inner
 
-# endregion
+# endregion 线程
 
 # region 定时任务
 from apscheduler.executors.pool import ThreadPoolExecutor,ProcessPoolExecutor
@@ -508,412 +491,27 @@ def 启动定时任务_阻塞主线程():
     while True:
         time.sleep(60*60*1)
 
-# endregion
+# endregion 定时任务
 
 # endregion
 
 
-# region to_xxx
 
-def from_hex_to_byte(str):
-    return bytes.fromhex(str)
-def from_byte_to_hex(字节):
-    return 字节.hex()
+# region shell
+import subprocess
+import platform
 
 
-# region time  -- datetime.datetime是原点，是核心中间类
+def is_linux_system():
+    return 'linux' in platform.system().lower()
 
-时间字符串_模板 = "%Y-%m-%d %H:%M:%S"
+def is_windows_system():
+    return 'windows' in platform.system().lower()
 
-def to_time_datetime(字符串or时间戳or时间元组=0, 格式字符串=时间字符串_模板, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
-    obj = 字符串or时间戳or时间元组
-
-    def from_str_to_datetime():
-        字符串 = obj  # type:str
-        字符串 = 字符串.strip()
-        if 字符串 == "" or 字符串 == "0":
-            return get_now_datetime()
-        return datetime.datetime.strptime(字符串, 格式字符串)
-
-    def from_时间元组_to_datetime():
-        return datetime.datetime.fromtimestamp(obj)
-
-    def from_普通元组_to_datetime():
-        nonlocal obj
-        普通元组 = obj  # type:tuple
-        if 普通元组.count() < 9:
-            补充个数 = 9 - 普通元组.count()
-            for i in range(补充个数):
-                普通元组 += (-1)
-        obj = time.mktime(普通元组)
-        return from_时间戳_to_datetime()
-
-    def from_时间戳_to_datetime():
-        时间戳 = obj  # type:float
-        if 时间戳 == 0:
-            return get_now_datetime()
-        return datetime.datetime.fromtimestamp(时间戳)
-
-    def from_datetime_to_datetime():
-        return obj
-
-    def default():
-        raise Exception(f"参数类型未支持：{repr(type(obj))}")
-
-    def get_now_datetime():
-        return datetime.datetime.now()
-
-    switch = {
-        "<class 'str'>": from_str_to_datetime,
-        "<class 'int'>": from_时间戳_to_datetime,
-        "<class 'float'>": from_时间戳_to_datetime,
-        "<class 'tuple'>": from_普通元组_to_datetime,
-        "<class 'time.struct_time'>": from_时间元组_to_datetime,
-        "<class 'datetime.datetime'>": from_datetime_to_datetime,
-    }
-    原点时间 = switch.get(repr(type(obj)), default)()
-
-    # 接下来处理时间的增减
-    增加的时间 = datetime.timedelta(seconds=增加几秒, minutes=增加几分钟, hours=增加几小时, days=增加几天)
-    return 原点时间 + 增加的时间
-
-def to_time_str(datetime_or_字符串or时间戳or时间元组=0, 格式字符串=时间字符串_模板, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
-    时间对象 = to_time_datetime(datetime_or_字符串or时间戳or时间元组, 格式字符串, 增加几秒, 增加几分钟, 增加几小时, 增加几天)
-    return 时间对象.strftime(格式字符串)
-
-def to_time_unix(datetime_or_字符串or时间戳or时间元组=0, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
-    时间对象 = to_time_datetime(datetime_or_字符串or时间戳or时间元组, 时间字符串_模板, 增加几秒, 增加几分钟, 增加几小时, 增加几天)
-    return time.mktime(时间对象.timetuple())
-
-def to_time_tuple(datetime_or_字符串or时间戳or时间元组=0, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
-    时间对象 = to_time_datetime(datetime_or_字符串or时间戳or时间元组, 时间字符串_模板, 增加几秒, 增加几分钟, 增加几小时, 增加几天)
-    return 时间对象.timetuple()
-
-
-def to_now_datetime():
-    return to_time_datetime(0)
-
-def to_now_str(格式字符串=时间字符串_模板):
-    return to_time_str(0, 格式字符串)
-
-def to_now_unix():
-    return to_time_unix(0)
-
-def to_now_tuple():
-    return to_time_tuple(0)
-
-
-to_datetime = functools.partial(to_time_datetime)
-to_时间字符串 = functools.partial(to_time_str)
-to_时间戳 = functools.partial(to_time_unix)
-to_时间元组 = functools.partial(to_time_tuple)
-to_unix = functools.partial(to_time_unix)
-to_now_时间戳 = functools.partial(to_now_unix)
-to_now_时间元组 = functools.partial(to_now_tuple)
-to_now_时间字符串 = functools.partial(to_now_str)
-
-
-def x分钟前的unix(分钟数=0):
-    return to_time_unix(0, 增加几分钟=-分钟数)
-
-def 整分钟数的当前时间(整多少分钟=30):
-    return 整分钟数的指定时间(整多少分钟=整多少分钟)
-
-def 整分钟数的指定时间(指定的时间=None, 整多少分钟=30):
-    分钟间隔 = 整多少分钟
-    if not 指定的时间:
-        指定的时间 = to_now_datetime()
-    else:
-        指定的时间 = to_time_datetime(指定的时间)
-    当前整点时间 = 指定的时间.replace(minute=0, second=0, microsecond=0)
-    当前整点时间_加一小时 = to_time_datetime(当前整点时间, 增加几小时=1)
-    拿来比较的时间 = 当前整点时间_加一小时
-    while 拿来比较的时间 >= 当前整点时间:
-        拿来比较的时间 = to_time_datetime(拿来比较的时间, 增加几分钟=-分钟间隔)
-        if 指定的时间 >= 拿来比较的时间:
-            return 拿来比较的时间
-
-# 获取当前时间的字符串
-def getCurrentDatetime_str(format_str="%Y-%m-%d %H:%M:%S"):
-    return datetime.datetime.now().strftime(format_str)
-
-# endregion
-
-def to_self(obj):
-    return to_json_obj(to_json_str(obj))
-
-# region json
-
-class _MyEncoder(json.JSONEncoder):
-    def default(self, obj):
-        if isinstance(obj, datetime.datetime):
-            return to_time_str(obj)
-        if isinstance(obj, bytes):
-            return obj.decode("utf8")
-        raise Exception(f"{obj}  {repr(type(obj))}  不能被处理")
-
-def _get_dict(obj):
-    try:
-        rst = dict(obj)
-    except:
-        rst = obj.__dict__
-    return rst
-
-def from_class_to_dict(obj):
-    obj = _get_dict(obj)
-    for i in obj:
-        try:
-            obj[i] = _get_dict(obj[i])
-        except:
-            pass
-    return obj
-
-def to_json_str(obj,ensure_ascii=False,check_class=True):
-    if check_class:
-        try:
-            obj_dict = obj.__dict__
-            obj = from_class_to_dict(obj)
-        except:
-            pass
-    return json.dumps(obj,ensure_ascii=ensure_ascii, cls=_MyEncoder)
-
-def to_json_file(obj, 文件对象, ensure_ascii=False, indent=2):
-    return json.dump(obj, 文件对象, ensure_ascii=ensure_ascii, indent=indent)
-
-def to_json_obj(字符串or文件对象):
-    def from_str_to_dict():
-        return json.loads(字符串or文件对象)
-
-    def from_file_to_dict():
-        return json.load(字符串or文件对象)
-
-    def default():
-        raise Exception("参数类型未支持")
-
-    switch = {
-        "<class 'str'>": from_str_to_dict,
-        "<class '_io.TextIOWrapper'>": from_file_to_dict,
-    }
-    return switch.get(repr(type(字符串or文件对象)), default)()
-
-# endregion
-
-def to_md5(data):
-    type_str = repr(type(data))
-    if type_str != "<class 'bytes'>" and type_str != "<class 'str'>":
-        data = json.dumps(data)
-    if repr(type(data)) == "<class 'str'>":
-        data = data.encode('utf-8')
-    md5 = hashlib.md5()
-    md5.update(data)
-    return md5.hexdigest()
-
-def to_uuid(去除中横线=True, 使用随机数=True):
-    if 使用随机数:
-        id = uuid.uuid4()
-    else:
-        id = uuid.uuid1()
-    id = str(id)
-    if 去除中横线:
-        id = id.replace("-", "")
-    return id
-
-__to_变量名__pattren = re.compile(r'[\W+\w+]*?to_变量名\((\w+)\)')
-__to_变量名__变量名集 = []
-
-def to_变量名(变量):
-    global __to_变量名__变量名集
-    if not __to_变量名__变量名集:
-        __to_变量名__变量名集 = __to_变量名__pattren.findall(traceback.extract_stack(limit=2)[0][3])
-    return __to_变量名__变量名集.pop(0)
-
-# endregion
-
-
-# region fileSystem
-
-def exist(文件全路径):
-    return os.path.exists(文件全路径)
-
-def isdir(文件全路径):
-    if exist(文件全路径):
-        return os.path.isdir(文件全路径)
-    else:
-        if get文件后缀(文件全路径):
-            return False
-        else:
-            return True
-
-def pwd(文件全路径):
-    return os.path.abspath(文件全路径)
-
-def ls(文件全路径, 包含前缀=True, 选项=""):
-    选项 = 选项.lower()
-    if not exist(文件全路径):
-        return []
-    if not isdir(文件全路径):
-        return [文件全路径]
-
-    if ("p" in 选项) or ("r" in 选项):
-        filePaths = getAllFilePaths(文件全路径, is_deep=True)
-        if not 包含前缀:
-            filePaths = stream(filePaths).map(lambda i: get文件名(i)).collect()
-        return filePaths
-    else:
-        if 包含前缀:
-            return stream(os.listdir(文件全路径)) \
-                    .map(lambda i: os.path.join(文件全路径, i)).collect()
-        else:
-            return os.listdir(文件全路径)
-
-def mkdir(文件全路径, 选项="-p"):
-    选项 = 选项.lower()
-    if not exist(文件全路径):
-        if ("p" in 选项) or ("r" in 选项):
-            os.makedirs(文件全路径)
-        else:
-            os.mkdir(文件全路径)
-
-def mk(文件全路径, 已有跳过_不删除=True, 选项="-p"):
-    选项 = 选项.lower()
-    if exist(文件全路径):
-        if 已有跳过_不删除:
-            return
-        else:
-            rm(文件全路径, "-rf")
-
-    if isdir(文件全路径):
-        mkdir(文件全路径, 选项)
-    else:
-        所在目录 = get文件所在目录(文件全路径)
-        if 所在目录 and (not exist(所在目录)):
-            mkdir(所在目录, 选项)
-        with open(文件全路径, "a"):
-            pass
-
-def rm(文件全路径, 选项="-rf"):
-    if exist(文件全路径):
-        if isdir(文件全路径):
-            if ("p" in 选项) or ("r" in 选项):
-                shutil.rmtree(文件全路径)
-            else:
-                try:
-                    os.rmdir(文件全路径)
-                except:
-                    stream(ls(文件全路径)).filter(lambda i: not isdir(i)) \
-                        .forEach(lambda i: rm(i))
-        else:
-            os.remove(文件全路径)
-
-def clear(文件全路径, 选项="-rf"):
-    if not isdir(文件全路径): rm(文件全路径, 选项); return;
-    if not exist(文件全路径): mk(文件全路径, 选项="-p"); return;
-    stream(ls(文件全路径)).forEach(lambda f: rm(f, 选项))
-
-def cp(旧文件, 新文件, 不删旧文件=True):
-    旧文件类型 = "dir" if isdir(旧文件) else "file"
-    新文件类型 = "dir" if isdir(新文件) else "file"
-
-    # 确保文件夹存在
-    if 新文件类型 == "dir":
-        mk(新文件)
-    if not exist(get文件所在目录(新文件)):
-        mk(get文件所在目录(新文件))
-
-    def file_file():
-        # shutil.copyfile(旧文件,新文件)  # 只复制内容
-        # 复制内容和权限 新文件不存在：新建，存在：覆盖
-        shutil.copy(旧文件, 新文件)
-
-    def file_dir():
-        if not exist(新文件):
-            mk(新文件)
-        shutil.copy(旧文件, 新文件)
-
-    def dir_file():
-        if not exist(新文件):
-            mk(新文件)
-        with open(新文件, "ab") as ff:
-            for i in ls(旧文件, 要包含前缀=True):
-                with open(i, "rb") as f:
-                    ff.write(f.read())
-
-    def dir_dir():
-        shutil.copytree(旧文件, 新文件)
-
-    def default():
-        raise Exception("复制失败,参数类型未支持")
-
-    switch = {
-        "file-file": file_file,
-        "file-dir": file_dir,
-        "dir-file": dir_file,
-        "dir-dir": dir_dir
-    }
-    switch.get(f"{旧文件类型}-{新文件类型}", default)()
-
-    if not 不删旧文件:
-        rm(旧文件, "-rf")
-
-
-def get文件名(文件全路径):
-    return os.path.basename(文件全路径)
-def get文件后缀(文件全路径):
-    return os.path.splitext(文件全路径)[1]
-def get文件所在目录(文件全路径):
-    return os.path.dirname(文件全路径)
-
-
-def getAllFilePaths(baseFilePath, is_deep=True):
-    return getDeepFilePaths(baseFilePath, "*", is_deep)
-# 递归获取 指定目录下，拥有指定后缀，的文件路径
-def getDeepFilePaths(baseFilePath, ext_list="txt", is_deep=True):
-    rst_filePaths = []
-    _getDeepFilePaths(rst_filePaths, baseFilePath, ext_list, is_deep)
-    return rst_filePaths
-def _getDeepFilePaths(rst_filePaths, baseFilePath, ext_list="txt", is_deep=True):
-    rst_filePaths += _getCurrentFilePaths(baseFilePath, ext_list)
-    # 递归当前目录下的目录
-    if is_deep:
-        f_list = stream(os.listdir(baseFilePath)) \
-                    .map(lambda fileName: os.path.join(baseFilePath, fileName)) \
-                    .collect()
-        stream(f_list) \
-            .filter(lambda f: os.path.isdir(f)) \
-            .forEach(lambda dir: _getDeepFilePaths(rst_filePaths, dir, ext_list, True))
-def _getCurrentFilePaths(baseFilePath, ext_list="txt"):
-    rst_filePaths = []
-    if not baseFilePath:
-        baseFilePath = "."
-    # 处理ext后缀
-    is_all_ext = False
-    if not isinstance(ext_list, (list,tuple)):
-        ext_list = [ext_list]
-    selectExt_list = stream(ext_list).map(lambda i: i if (i and i[0]==".") else f".{i}").collect()
-    if ("." in selectExt_list) or (".None" in selectExt_list):
-        selectExt_list.append("")
-    if (".*" in selectExt_list):
-        is_all_ext = True
-    selectExt_list = stream(selectExt_list).filter(lambda i: i!="." and i!=".None" and i!=".*").collect()
-
-    # 获取当前目录下的所有文件名
-    f_list = stream(os.listdir(baseFilePath)) \
-                .map(lambda fileName: os.path.join(baseFilePath,fileName)) \
-                .collect()
-
-    if is_all_ext:
-        rst_filePaths += stream(f_list) \
-                            .filter(lambda f: not os.path.isdir(f)) \
-                            .collect()
-    else:
-        # 将当前目录下后缀名为指定后缀的文件，放入rst_filePaths列表
-        stream(f_list) \
-            .filter(lambda f: not os.path.isdir(f)) \
-            .filter(lambda f: os.path.splitext(f)[1] in selectExt_list) \
-            .forEach(lambda f: rst_filePaths.append(f))
-    return rst_filePaths
-
-# endregion fileSystem
+def shell(cmd, stdout=subprocess.PIPE, encoding="utf8", shell=True, check=True, **kwargs):
+    return subprocess.run(cmd, stdout=stdout, encoding=encoding, shell=shell, check=check, **kwargs)\
+                    .stdout
+# endregion shell
 
 
 # region dao
@@ -1366,6 +964,409 @@ class 配置类:
 # endregion 配置相关
 
 
+# region to_xxx
+
+def from_hex_to_byte(str):
+    return bytes.fromhex(str)
+def from_byte_to_hex(字节):
+    return 字节.hex()
+
+
+# region time  -- datetime.datetime是原点，是核心中间类
+
+时间字符串_模板 = "%Y-%m-%d %H:%M:%S"
+
+def to_time_datetime(字符串or时间戳or时间元组=0, 格式字符串=时间字符串_模板, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
+    obj = 字符串or时间戳or时间元组
+
+    def from_str_to_datetime():
+        字符串 = obj  # type:str
+        字符串 = 字符串.strip()
+        if 字符串 == "" or 字符串 == "0":
+            return get_now_datetime()
+        return datetime.datetime.strptime(字符串, 格式字符串)
+
+    def from_时间元组_to_datetime():
+        return datetime.datetime.fromtimestamp(obj)
+
+    def from_普通元组_to_datetime():
+        nonlocal obj
+        普通元组 = obj  # type:tuple
+        if 普通元组.count() < 9:
+            补充个数 = 9 - 普通元组.count()
+            for i in range(补充个数):
+                普通元组 += (-1)
+        obj = time.mktime(普通元组)
+        return from_时间戳_to_datetime()
+
+    def from_时间戳_to_datetime():
+        时间戳 = obj  # type:float
+        if 时间戳 == 0:
+            return get_now_datetime()
+        return datetime.datetime.fromtimestamp(时间戳)
+
+    def from_datetime_to_datetime():
+        return obj
+
+    def default():
+        raise Exception(f"参数类型未支持：{repr(type(obj))}")
+
+    def get_now_datetime():
+        return datetime.datetime.now()
+
+    switch = {
+        "<class 'str'>": from_str_to_datetime,
+        "<class 'int'>": from_时间戳_to_datetime,
+        "<class 'float'>": from_时间戳_to_datetime,
+        "<class 'tuple'>": from_普通元组_to_datetime,
+        "<class 'time.struct_time'>": from_时间元组_to_datetime,
+        "<class 'datetime.datetime'>": from_datetime_to_datetime,
+    }
+    原点时间 = switch.get(repr(type(obj)), default)()
+
+    # 接下来处理时间的增减
+    增加的时间 = datetime.timedelta(seconds=增加几秒, minutes=增加几分钟, hours=增加几小时, days=增加几天)
+    return 原点时间 + 增加的时间
+
+def to_time_str(datetime_or_字符串or时间戳or时间元组=0, 格式字符串=时间字符串_模板, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
+    时间对象 = to_time_datetime(datetime_or_字符串or时间戳or时间元组, 格式字符串, 增加几秒, 增加几分钟, 增加几小时, 增加几天)
+    return 时间对象.strftime(格式字符串)
+
+def to_time_unix(datetime_or_字符串or时间戳or时间元组=0, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
+    时间对象 = to_time_datetime(datetime_or_字符串or时间戳or时间元组, 时间字符串_模板, 增加几秒, 增加几分钟, 增加几小时, 增加几天)
+    return time.mktime(时间对象.timetuple())
+
+def to_time_tuple(datetime_or_字符串or时间戳or时间元组=0, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
+    时间对象 = to_time_datetime(datetime_or_字符串or时间戳or时间元组, 时间字符串_模板, 增加几秒, 增加几分钟, 增加几小时, 增加几天)
+    return 时间对象.timetuple()
+
+
+def to_now_datetime():
+    return to_time_datetime(0)
+
+def to_now_str(格式字符串=时间字符串_模板):
+    return to_time_str(0, 格式字符串)
+
+def to_now_unix():
+    return to_time_unix(0)
+
+def to_now_tuple():
+    return to_time_tuple(0)
+
+
+to_datetime = functools.partial(to_time_datetime)
+to_时间字符串 = functools.partial(to_time_str)
+to_时间戳 = functools.partial(to_time_unix)
+to_时间元组 = functools.partial(to_time_tuple)
+to_unix = functools.partial(to_time_unix)
+to_now_时间戳 = functools.partial(to_now_unix)
+to_now_时间元组 = functools.partial(to_now_tuple)
+to_now_时间字符串 = functools.partial(to_now_str)
+
+
+def x分钟前的unix(分钟数=0):
+    return to_time_unix(0, 增加几分钟=-分钟数)
+
+def 整分钟数的当前时间(整多少分钟=30):
+    return 整分钟数的指定时间(整多少分钟=整多少分钟)
+
+def 整分钟数的指定时间(指定的时间=None, 整多少分钟=30):
+    分钟间隔 = 整多少分钟
+    if not 指定的时间:
+        指定的时间 = to_now_datetime()
+    else:
+        指定的时间 = to_time_datetime(指定的时间)
+    当前整点时间 = 指定的时间.replace(minute=0, second=0, microsecond=0)
+    当前整点时间_加一小时 = to_time_datetime(当前整点时间, 增加几小时=1)
+    拿来比较的时间 = 当前整点时间_加一小时
+    while 拿来比较的时间 >= 当前整点时间:
+        拿来比较的时间 = to_time_datetime(拿来比较的时间, 增加几分钟=-分钟间隔)
+        if 指定的时间 >= 拿来比较的时间:
+            return 拿来比较的时间
+
+# 获取当前时间的字符串
+def getCurrentDatetime_str(format_str="%Y-%m-%d %H:%M:%S"):
+    return datetime.datetime.now().strftime(format_str)
+
+# endregion time
+
+def to_self(obj):
+    return to_json_obj(to_json_str(obj))
+
+# region json
+
+class _MyEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime.datetime):
+            return to_time_str(obj)
+        if isinstance(obj, bytes):
+            return obj.decode("utf8")
+        raise Exception(f"{obj}  {repr(type(obj))}  不能被处理")
+
+def _get_dict(obj):
+    try:
+        rst = dict(obj)
+    except:
+        rst = obj.__dict__
+    return rst
+
+def from_class_to_dict(obj):
+    obj = _get_dict(obj)
+    for i in obj:
+        try:
+            obj[i] = _get_dict(obj[i])
+        except:
+            pass
+    return obj
+
+def to_json_str(obj,ensure_ascii=False,check_class=True):
+    if check_class:
+        try:
+            obj_dict = obj.__dict__
+            obj = from_class_to_dict(obj)
+        except:
+            pass
+    return json.dumps(obj,ensure_ascii=ensure_ascii, cls=_MyEncoder)
+
+def to_json_file(obj, 文件对象, ensure_ascii=False, indent=2):
+    return json.dump(obj, 文件对象, ensure_ascii=ensure_ascii, indent=indent)
+
+def to_json_obj(字符串or文件对象):
+    def from_str_to_dict():
+        return json.loads(字符串or文件对象)
+
+    def from_file_to_dict():
+        return json.load(字符串or文件对象)
+
+    def default():
+        raise Exception("参数类型未支持")
+
+    switch = {
+        "<class 'str'>": from_str_to_dict,
+        "<class '_io.TextIOWrapper'>": from_file_to_dict,
+    }
+    return switch.get(repr(type(字符串or文件对象)), default)()
+
+# endregion json
+
+def to_md5(data):
+    type_str = repr(type(data))
+    if type_str != "<class 'bytes'>" and type_str != "<class 'str'>":
+        data = json.dumps(data)
+    if repr(type(data)) == "<class 'str'>":
+        data = data.encode('utf-8')
+    md5 = hashlib.md5()
+    md5.update(data)
+    return md5.hexdigest()
+
+def to_uuid(去除中横线=True, 使用随机数=True):
+    if 使用随机数:
+        id = uuid.uuid4()
+    else:
+        id = uuid.uuid1()
+    id = str(id)
+    if 去除中横线:
+        id = id.replace("-", "")
+    return id
+
+__to_变量名__pattren = re.compile(r'[\W+\w+]*?to_变量名\((\w+)\)')
+__to_变量名__变量名集 = []
+
+def to_变量名(变量):
+    global __to_变量名__变量名集
+    if not __to_变量名__变量名集:
+        __to_变量名__变量名集 = __to_变量名__pattren.findall(traceback.extract_stack(limit=2)[0][3])
+    return __to_变量名__变量名集.pop(0)
+
+# endregion to_xxx
+
+
+# region fileSystem
+
+def exist(文件全路径):
+    return os.path.exists(文件全路径)
+
+def isdir(文件全路径):
+    if exist(文件全路径):
+        return os.path.isdir(文件全路径)
+    else:
+        if get文件后缀(文件全路径):
+            return False
+        else:
+            return True
+
+def pwd(文件全路径):
+    return os.path.abspath(文件全路径)
+
+def ls(文件全路径, 包含前缀=True, 选项=""):
+    选项 = 选项.lower()
+    if not exist(文件全路径):
+        return []
+    if not isdir(文件全路径):
+        return [文件全路径]
+
+    if ("p" in 选项) or ("r" in 选项):
+        filePaths = getAllFilePaths(文件全路径, is_deep=True)
+        if not 包含前缀:
+            filePaths = stream(filePaths).map(lambda i: get文件名(i)).collect()
+        return filePaths
+    else:
+        if 包含前缀:
+            return stream(os.listdir(文件全路径)) \
+                    .map(lambda i: os.path.join(文件全路径, i)).collect()
+        else:
+            return os.listdir(文件全路径)
+
+def mkdir(文件全路径, 选项="-p"):
+    选项 = 选项.lower()
+    if not exist(文件全路径):
+        if ("p" in 选项) or ("r" in 选项):
+            os.makedirs(文件全路径)
+        else:
+            os.mkdir(文件全路径)
+
+def mk(文件全路径, 已有跳过_不删除=True, 选项="-p"):
+    选项 = 选项.lower()
+    if exist(文件全路径):
+        if 已有跳过_不删除:
+            return
+        else:
+            rm(文件全路径, "-rf")
+
+    if isdir(文件全路径):
+        mkdir(文件全路径, 选项)
+    else:
+        所在目录 = get文件所在目录(文件全路径)
+        if 所在目录 and (not exist(所在目录)):
+            mkdir(所在目录, 选项)
+        with open(文件全路径, "a"):
+            pass
+
+def rm(文件全路径, 选项="-rf"):
+    if exist(文件全路径):
+        if isdir(文件全路径):
+            if ("p" in 选项) or ("r" in 选项):
+                shutil.rmtree(文件全路径)
+            else:
+                try:
+                    os.rmdir(文件全路径)
+                except:
+                    stream(ls(文件全路径)).filter(lambda i: not isdir(i)) \
+                        .forEach(lambda i: rm(i))
+        else:
+            os.remove(文件全路径)
+
+def clear(文件全路径, 选项="-rf"):
+    if not isdir(文件全路径): rm(文件全路径, 选项); return;
+    if not exist(文件全路径): mk(文件全路径, 选项="-p"); return;
+    stream(ls(文件全路径)).forEach(lambda f: rm(f, 选项))
+
+def cp(旧文件, 新文件, 不删旧文件=True):
+    旧文件类型 = "dir" if isdir(旧文件) else "file"
+    新文件类型 = "dir" if isdir(新文件) else "file"
+
+    # 确保文件夹存在
+    if 新文件类型 == "dir":
+        mk(新文件)
+    if not exist(get文件所在目录(新文件)):
+        mk(get文件所在目录(新文件))
+
+    def file_file():
+        # shutil.copyfile(旧文件,新文件)  # 只复制内容
+        # 复制内容和权限 新文件不存在：新建，存在：覆盖
+        shutil.copy(旧文件, 新文件)
+
+    def file_dir():
+        if not exist(新文件):
+            mk(新文件)
+        shutil.copy(旧文件, 新文件)
+
+    def dir_file():
+        if not exist(新文件):
+            mk(新文件)
+        with open(新文件, "ab") as ff:
+            for i in ls(旧文件, 要包含前缀=True):
+                with open(i, "rb") as f:
+                    ff.write(f.read())
+
+    def dir_dir():
+        shutil.copytree(旧文件, 新文件)
+
+    def default():
+        raise Exception("复制失败,参数类型未支持")
+
+    switch = {
+        "file-file": file_file,
+        "file-dir": file_dir,
+        "dir-file": dir_file,
+        "dir-dir": dir_dir
+    }
+    switch.get(f"{旧文件类型}-{新文件类型}", default)()
+
+    if not 不删旧文件:
+        rm(旧文件, "-rf")
+
+
+def get文件名(文件全路径):
+    return os.path.basename(文件全路径)
+def get文件后缀(文件全路径):
+    return os.path.splitext(文件全路径)[1]
+def get文件所在目录(文件全路径):
+    return os.path.dirname(文件全路径)
+
+
+def getAllFilePaths(baseFilePath, is_deep=True):
+    return getDeepFilePaths(baseFilePath, "*", is_deep)
+# 递归获取 指定目录下，拥有指定后缀，的文件路径
+def getDeepFilePaths(baseFilePath, ext_list="txt", is_deep=True):
+    rst_filePaths = []
+    _getDeepFilePaths(rst_filePaths, baseFilePath, ext_list, is_deep)
+    return rst_filePaths
+def _getDeepFilePaths(rst_filePaths, baseFilePath, ext_list="txt", is_deep=True):
+    rst_filePaths += _getCurrentFilePaths(baseFilePath, ext_list)
+    # 递归当前目录下的目录
+    if is_deep:
+        f_list = stream(os.listdir(baseFilePath)) \
+                    .map(lambda fileName: os.path.join(baseFilePath, fileName)) \
+                    .collect()
+        stream(f_list) \
+            .filter(lambda f: os.path.isdir(f)) \
+            .forEach(lambda dir: _getDeepFilePaths(rst_filePaths, dir, ext_list, True))
+def _getCurrentFilePaths(baseFilePath, ext_list="txt"):
+    rst_filePaths = []
+    if not baseFilePath:
+        baseFilePath = "."
+    # 处理ext后缀
+    is_all_ext = False
+    if not isinstance(ext_list, (list,tuple)):
+        ext_list = [ext_list]
+    selectExt_list = stream(ext_list).map(lambda i: i if (i and i[0]==".") else f".{i}").collect()
+    if ("." in selectExt_list) or (".None" in selectExt_list):
+        selectExt_list.append("")
+    if (".*" in selectExt_list):
+        is_all_ext = True
+    selectExt_list = stream(selectExt_list).filter(lambda i: i!="." and i!=".None" and i!=".*").collect()
+
+    # 获取当前目录下的所有文件名
+    f_list = stream(os.listdir(baseFilePath)) \
+                .map(lambda fileName: os.path.join(baseFilePath,fileName)) \
+                .collect()
+
+    if is_all_ext:
+        rst_filePaths += stream(f_list) \
+                            .filter(lambda f: not os.path.isdir(f)) \
+                            .collect()
+    else:
+        # 将当前目录下后缀名为指定后缀的文件，放入rst_filePaths列表
+        stream(f_list) \
+            .filter(lambda f: not os.path.isdir(f)) \
+            .filter(lambda f: os.path.splitext(f)[1] in selectExt_list) \
+            .forEach(lambda f: rst_filePaths.append(f))
+    return rst_filePaths
+
+# endregion fileSystem
+
+
 # region 线程序号
 
 class 线程序号类:
@@ -1700,21 +1701,22 @@ def getDictValue(my_dict, key="", default=None, 分隔符="."):
     except:
         return default
 # 设置多层dict的值
-def setDictValue(mydict, key, value, 分隔符='.'):
+def setDictValue(my_dict, key, value, 分隔符='.'):
     keys = key.split(分隔符)
     length = len(keys)
     for index, i in enumerate(key.split(分隔符)):
         if int(index) + 1 == length:
-            if isinstance(mydict, (list, tuple)):
-                mydict[int(i)] = value
+            if isinstance(my_dict, (list, tuple)):
+                my_dict[int(i)] = value
             else:
-                mydict[i] = value
+                my_dict[i] = value
         else:
-            if isinstance(mydict, (list, tuple)):
-                mydict = mydict[int(i)]
+            if isinstance(my_dict, (list, tuple)):
+                my_dict = my_dict[int(i)]
             else:
-                mydict = mydict[i]
-# endregion
+                my_dict = my_dict[i]
+
+# endregion 数据集合
 
 
 # region 流式计算
