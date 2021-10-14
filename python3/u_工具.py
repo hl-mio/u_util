@@ -62,6 +62,7 @@ def change_locals(frame, 修改表={}):
 try:
     import xlrd
     import openpyxl
+    from openpyxl.utils import get_column_letter, column_index_from_string
 except: pass
 
 
@@ -237,7 +238,7 @@ def get_excel_表头(sheet, 表头行下标__int或list):
 
 
 
-from openpyxl.utils import get_column_letter, column_index_from_string
+
 def to_excel序号_字母(数字):
     if isinstance(数字, str):
         try:
