@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2021-08-16
+# @Time    : 2021-10-14
 # @Author  : hlmio
 import hashlib
 import json
@@ -59,8 +59,11 @@ def change_locals(frame, 修改表={}):
 
 
 # region excel
-import xlrd
-import openpyxl
+try:
+    import xlrd
+    import openpyxl
+except: pass
+
 
 excel类型 = {
     "xlrd":{
@@ -403,8 +406,11 @@ def 线程模式(func):
 # endregion 线程
 
 # region 定时任务
-from apscheduler.executors.pool import ThreadPoolExecutor,ProcessPoolExecutor
-from apscheduler.schedulers.background import BackgroundScheduler
+try:
+    from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
+    from apscheduler.schedulers.background import BackgroundScheduler
+except: pass
+
 
 _scheduler = None
 _定时任务列表 = []
@@ -498,8 +504,11 @@ def 启动定时任务_阻塞主线程():
 
 
 # region shell
-import subprocess
-import platform
+try:
+    import subprocess
+    import platform
+except: pass
+
 
 
 def is_linux_system():
@@ -527,7 +536,10 @@ def __get_conf_vlaue(conf, key_list, default=""):
     return value
 
 # region redis
-import redis as redis_py
+try:
+    import redis as redis_py
+except: pass
+
 
 _redis_conf = {
     "host": "127.0.0.1",
@@ -593,7 +605,10 @@ def redis(new_conf={}):
 # endregion oracle
 
 # region oracle
-import cx_Oracle
+try:
+    import cx_Oracle
+except: pass
+
 
 # os.environ['NLS_LANG'] = 'SIMPLIFIED CHINESE_CHINA.UTF8'
 # select userenv('language') from dual;
@@ -713,7 +728,10 @@ def oracle(new_conf={}):
 # endregion oracle
 
 # region mysql
-import pymysql
+try:
+    import pymysql
+except: pass
+
 
 _mysql_conf = {
     "host": "106.13.231.168",
@@ -823,7 +841,10 @@ def mysql(new_conf={}):
 
 
 # region 配置相关
-import configparser
+try:
+    import configparser
+except: pass
+
 
 
 def _configparser_to_dict(config):
@@ -1028,8 +1049,11 @@ def to_time_datetime(字符串or时间戳or时间元组=0, 格式字符串=时�
     增加的时间 = datetime.timedelta(seconds=增加几秒, minutes=增加几分钟, hours=增加几小时, days=增加几天)
     return 原点时间 + 增加的时间
 
-def to_time_str(datetime_or_字符串or时间戳or时间元组=0, 格式字符串=时间字符串_模板, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
-    时间对象 = to_time_datetime(datetime_or_字符串or时间戳or时间元组, 格式字符串, 增加几秒, 增加几分钟, 增加几小时, 增加几天)
+def to_time_str(datetime_or_字符串or时间戳or时间元组=0, 格式字符串=时间字符串_模板, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0, 格式字符串_旧=时间字符串_模板):
+    if isinstance(datetime_or_字符串or时间戳or时间元组, str):
+        时间对象 = to_time_datetime(datetime_or_字符串or时间戳or时间元组, 格式字符串_旧, 增加几秒, 增加几分钟, 增加几小时, 增加几天)
+    else:
+        时间对象 = to_time_datetime(datetime_or_字符串or时间戳or时间元组, 格式字符串, 增加几秒, 增加几分钟, 增加几小时, 增加几天)
     return 时间对象.strftime(格式字符串)
 
 def to_time_unix(datetime_or_字符串or时间戳or时间元组=0, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
