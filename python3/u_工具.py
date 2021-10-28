@@ -1797,6 +1797,11 @@ class ListStream:
     def collect(self):
         return self.list
 
+    def sort(self, key=None, reverse=False):
+        self.list.sort(key=key, reverse=reverse)
+        return self
+
+
 class DictStream(ListStream):
     def __init__(self, my_dict={}):
         self.list = self._dict_to_list(my_dict)
