@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2021-10-22
+# @Time    : 2021-10-23
 # @Author  : hlmio
 import hashlib
 import json
@@ -1639,13 +1639,11 @@ def 计时(起始点=None, 结束点=None):
 # region 随机延时
 
 # 固定延时x秒
-def delay_x_0_s(fixed_delay_num):
+def _delay_x_0_s(fixed_delay_num):
     x = float(fixed_delay_num)
     time.sleep(x)
-
-
 # 随机延时 0~y 秒
-def delay_0_y_s(random_delay_num):
+def _delay_0_y_s(random_delay_num):
     y = float(random_delay_num)
     time.sleep(random.random() * y)
 
@@ -1653,26 +1651,26 @@ def delay_0_y_s(random_delay_num):
 # 先固定延时x秒，再随机延时 0~y 秒
 # 延时区间，包前不包后
 def delay_x_y_s(fixed_delay_num, random_delay_num):
-    delay_x_0_s(fixed_delay_num)
-    delay_0_y_s(random_delay_num)
+    _delay_x_0_s(fixed_delay_num)
+    _delay_0_y_s(random_delay_num)
 
 
 # 随机延时 x~y 秒
 # 延时区间，包前不包后
-def delay_between_x_y_s(start_delay_num, end_delay_num):
-    x = float(start_delay_num)
-    y = float(end_delay_num)
-    delay_x_0_s(x)
-    delay_0_y_s(y - x)
+def delay_x_to_y_s(最小秒数, 最大秒数):
+    x = float(最小秒数)
+    y = float(最大秒数)
+    _delay_x_0_s(x)
+    _delay_0_y_s(y - x)
+
+delay_between_x_y_s = functools.partial(delay_x_to_y_s)
 
 
 def delay_x_s(固定延时几秒):
-    delay_x_0_s(固定延时几秒)
-
+    _delay_x_0_s(固定延时几秒)
 
 def delay_y_s(随机延时0到几秒):
-    delay_0_y_s(随机延时0到几秒)
-
+    _delay_0_y_s(随机延时0到几秒)
 
 # endregion 随机延时
 
