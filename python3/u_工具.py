@@ -639,33 +639,8 @@ class 配置类:
         self.变量集 = 变量集
         self.关联表 = 关联表
         return self
-
-    def 重载(self, 分隔符=".", is_override_vars=True):
-        # 加载配置
-        self.配置 = self._数据源转dict()
-
-        if is_override_vars:
-            # 覆写变量
-            for key in self.关联表.keys():
-                old_value = getDictValue(self.变量集, key, 分隔符=分隔符)
-                now_value = getDictValue(self.配置, self.关联表.get(key), old_value, 分隔符)
-                setDictValue(self.变量集, key, now_value)
-
-        return self
-
-    def set(self, 路径="./配置文件.json", 类型="auto", 来源="filesystem"):
-        return self.加载(路径, 类型, 来源)
-
-    def get(self, key="", 分隔符="."):
-        return self.取值(key, 分隔符)
-
-    def link(self, 变量集, 关联表={}, 分隔符="."):
-        return self.关联(变量集, 关联表, 分隔符=分隔符)
-
-    def reload(self, 分隔符=".", is_override_vars=True):
-        return self.重载(分隔符, is_override_vars)
-
-    def export(self, is_del_before=False, vars={}):
+    
+    def 导出(self, is_del_before=False, vars={}):
         config_filePath = self.数据源["路径"]
         is_file_exist = os.path.exists(config_filePath)
 
@@ -687,10 +662,38 @@ class 配置类:
 
         return self
 
+    def 重载(self, 分隔符=".", is_override_vars=True):
+        # 加载配置
+        self.配置 = self._数据源转dict()
+
+        if is_override_vars:
+            # 覆写变量
+            for key in self.关联表.keys():
+                old_value = getDictValue(self.变量集, key, 分隔符=分隔符)
+                now_value = getDictValue(self.配置, self.关联表.get(key), old_value, 分隔符)
+                setDictValue(self.变量集, key, now_value)
+
+        return self
+
+    def load(self, 路径="./配置文件.json", 类型="auto", 来源="filesystem"):
+        return self.加载(路径, 类型, 来源)
+
+    def get(self, key="", 分隔符="."):
+        return self.取值(key, 分隔符)
+
+    def link(self, 变量集, 关联表={}, 分隔符="."):
+        return self.关联(变量集, 关联表, 分隔符=分隔符)
+
+    def reload(self, 分隔符=".", is_override_vars=True):
+        return self.重载(分隔符, is_override_vars)
+
+    def export(self, is_del_before=False, vars={}):
+        return self.导出(is_del_before, vars)
+
     def all(self, 配置文件路径, 变量集, 类型="auto", 来源="filesystem", 关联表={}, 分隔符=".", is_del_before=False, export_vars={},
             is_override_vars=True):
-        return self.set(配置文件路径, 类型, 来源).link(变量集, 关联表, 分隔符=分隔符).export(is_del_before, export_vars).reload(分隔符,
-                                                                                                          is_override_vars)
+        return self.load(配置文件路径, 类型, 来源).link(变量集, 关联表, 分隔符=分隔符).export(is_del_before, export_vars).reload(分隔符,
+                                                                                                           is_override_vars)
 
 
 配置 = 配置类.实例化()
