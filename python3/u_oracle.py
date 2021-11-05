@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2021-05-12
+# @Time    : 2021-11-05
 # @Author  : hlmio
 from u_工具 import *
 
@@ -123,6 +123,9 @@ def _复制表名注释(dal, 旧表dblink, 旧表用户, 旧表表名, 新表dbl
 
     if 新表dblink:
         dal.commit()
+def copy表注释to另一张表(dal,旧表,新表, 旧表dblink=None,旧表用户=None,新表dblink=None,新表用户=None):
+    _复制表字段注释(dal, 旧表dblink, 旧表用户, 旧表, 新表dblink, 新表用户, 新表)
+    _复制表名注释(dal, 旧表dblink, 旧表用户, 旧表, 新表dblink, 新表用户, 新表)
 def cp_view(dal, 旧表dblink, 旧表用户, 旧表表名, 新表dblink, 新表用户, 新表表名):
     _创建表在其他库的视图(dal, 旧表dblink, 旧表用户, 旧表表名, 新表dblink, 新表用户, 新表表名)
     print("1.已建立视图")
