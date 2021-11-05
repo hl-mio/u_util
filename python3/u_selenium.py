@@ -90,6 +90,13 @@ def init_chrome(download_path=None, 隐式等待多少秒=None):
     options.add_experimental_option('useAutomationExtension', False)
 
     driver = webdriver.Chrome(chrome_options=options)
+    # driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+    #     "source": """
+    #         Object.defineProperty(navigator, 'webdriver', {
+    #           get: () => undefined
+    #         })
+    #     """
+    # })
     if 隐式等待多少秒:
         driver.implicitly_wait(隐式等待多少秒)
     return driver
