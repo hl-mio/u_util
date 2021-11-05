@@ -1,27 +1,20 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2021-10-23
+# @Time    : 2021-11-05
 # @Author  : hlmio
-import hashlib
-import json
 import os
 import shutil
 import time
 import datetime
 import random
 import threading
-import uuid
 import re
 import traceback
-import ctypes
-import functools
 import pathlib
-import concurrent.futures
+import functools
 from functools import wraps
 
 
-
 # region 未分类
-
 
 def get_file_rows(文件全路径, txt_分隔符=",", excel_sheet下标或名称=0, encoding="utf8", txt_is去掉所有空行=True):
     if "xls" in 文件全路径 or "xlsx" in 文件全路径:
@@ -29,9 +22,10 @@ def get_file_rows(文件全路径, txt_分隔符=",", excel_sheet下标或名称
     else:
         return _get_file_rows__txt(文件全路径, txt_分隔符, encoding, txt_is去掉所有空行)
 
+
 def _get_file_rows__txt(文件全路径, 分隔符=",", encoding="utf8", is去掉所有空行=True):
     rows = []
-    with open(文件全路径,"r",encoding=encoding) as f:
+    with open(文件全路径, "r", encoding=encoding) as f:
         for line in f.readlines():
             line = line.rstrip("\n")
             if is去掉所有空行 and not line:
@@ -39,11 +33,12 @@ def _get_file_rows__txt(文件全路径, 分隔符=",", encoding="utf8", is去�
             row = line.split(分隔符)
             rows.append(row)
     # 处理bom
-    bomList = ["\ufeff","\ufffe"]
+    bomList = ["\ufeff", "\ufffe"]
     for bom in bomList:
         if rows and rows[0] and rows[0][0].startswith(bom):
             rows[0][0] = rows[0][0].split(bom, 1)[1]
     return rows
+
 
 def _get_file_rows__excel(文件全路径, sheet下标或名称=0, encoding="utf8"):
     rows = []
@@ -71,13 +66,17 @@ def flask_get输入参数(request, 参数名, 默认值=None, 参数在json的�
     except:
         return 默认值
 
+
 # endregion
 
 
 __lock_print = threading.Lock()
+
+
 def print_加锁(*args, **kwargs):
     with __lock_print:
         print(*args, **kwargs)
+
 
 def change_locals(frame, 修改表={}):
     frame.f_locals.update(修改表)
@@ -85,6 +84,7 @@ def change_locals(frame, 修改表={}):
         ctypes.py_object(frame),
         ctypes.c_int(0)
     )
+
 
 # endregion 未分类
 
@@ -96,9 +96,8 @@ try:
     from openpyxl.utils import get_column_letter, column_index_from_string
 except: pass
 
-
 excel类型 = {
-    "xlrd":{
+    "xlrd": {
         "workbook": "<class 'xlrd.book.Book'>",
         "sheet": "<class 'xlrd.sheet.Sheet'>",
     },
@@ -116,10 +115,15 @@ def get_excel_workbook(文件路径, 底层实现="xlrd"):
     if 底层实现.lower() == "openpyxl":
         return _get_excel_workbook__openpyxl(文件路径)
     return Exception("底层实现未支持")
+
+
 def _get_excel_workbook__xlrd(文件路径):
     return xlrd.open_workbook(文件路径)
+
+
 def _get_excel_workbook__openpyxl(文件路径):
     return openpyxl.load_workbook(文件路径)
+
 
 def get_excel_sheet(文件路径, sheet下标或名称=0, 底层实现="xlrd"):
     底层实现 = 底层实现.lower()
@@ -128,20 +132,22 @@ def get_excel_sheet(文件路径, sheet下标或名称=0, 底层实现="xlrd"):
     if 底层实现 == "openpyxl":
         return _get_excel_sheet__openpyxl(文件路径, sheet下标或名称)
     return Exception("底层实现未支持")
+
+
 def _get_excel_sheet__xlrd(文件路径, sheet下标或名称=0):
     workbook = _get_excel_workbook__xlrd(文件路径)
     if isinstance(sheet下标或名称, str):
         return workbook.sheet_by_name(sheet下标或名称)
     else:
         return workbook.sheet_by_index(sheet下标或名称)
+
+
 def _get_excel_sheet__openpyxl(文件路径, sheet下标或名称):
     workbook = _get_excel_workbook__openpyxl(文件路径)
     if isinstance(sheet下标或名称, str):
         return workbook.get_sheet_by_name(sheet下标或名称)
     else:
         return workbook.worksheets[sheet下标或名称]
-
-
 
 
 def get_excel_行数(sheet):
@@ -155,10 +161,12 @@ def get_excel_行数(sheet):
         raise Exception("参数类型未支持")
 
     switch = {
-        excel类型["xlrd"]["sheet"] : xlrd_sheet,
+        excel类型["xlrd"]["sheet"]: xlrd_sheet,
         excel类型["openpyxl"]["sheet"]: openpyxl_sheet,
     }
     return switch.get(repr(type(sheet)), default)()
+
+
 def get_excel_列数(sheet):
     def xlrd_sheet():
         return sheet.ncols
@@ -170,7 +178,7 @@ def get_excel_列数(sheet):
         raise Exception("参数类型未支持")
 
     switch = {
-        excel类型["xlrd"]["sheet"] : xlrd_sheet,
+        excel类型["xlrd"]["sheet"]: xlrd_sheet,
         excel类型["openpyxl"]["sheet"]: openpyxl_sheet,
     }
     return switch.get(repr(type(sheet)), default)()
@@ -182,20 +190,24 @@ def get_excel_值(sheet, 行下标, 列下标):
 
     # 待处理合并单元格
     def openpyxl_sheet():
-        return sheet.cell(row=行下标+1, column=列下标+1).value
+        return sheet.cell(row=行下标 + 1, column=列下标 + 1).value
 
     def default():
         raise Exception("参数类型未支持")
 
     switch = {
-        excel类型["xlrd"]["sheet"] : xlrd_sheet,
+        excel类型["xlrd"]["sheet"]: xlrd_sheet,
         excel类型["openpyxl"]["sheet"]: openpyxl_sheet,
     }
     return switch.get(repr(type(sheet)), default)()
+
+
 def get_excel_值_by序号(sheet, 行序号, 列序号):
     行下标 = to_excel序号_数字(行序号) - 1
     列下标 = to_excel序号_数字(列序号) - 1
     return get_excel_值(sheet, 行下标, 列下标)
+
+
 def get_excel_值_by单词(sheet, 单词="A1"):
     单词match = re.match("([a-z A-Z]*)([0-9]*)([a-z A-Z]*)", 单词)
     列序号 = 单词match.group(1)
@@ -209,16 +221,18 @@ def get_excel_行(sheet, 行下标):
     def xlrd_sheet():
         值list = []
         for j in range(get_excel_列数(sheet)):
-            值list.append(get_excel_值(sheet,行下标,j))
+            值list.append(get_excel_值(sheet, 行下标, j))
         return 值list
 
     def default():
         raise Exception("参数类型未支持")
 
     switch = {
-        excel类型["xlrd"]["sheet"] : xlrd_sheet,
+        excel类型["xlrd"]["sheet"]: xlrd_sheet,
     }
     return switch.get(repr(type(sheet)), default)()
+
+
 def get_excel_列(sheet, 列下标):
     def xlrd_sheet():
         值list = []
@@ -231,7 +245,7 @@ def get_excel_列(sheet, 列下标):
         raise Exception("参数类型未支持")
 
     switch = {
-        excel类型["xlrd"]["sheet"] : xlrd_sheet,
+        excel类型["xlrd"]["sheet"]: xlrd_sheet,
     }
     return switch.get(repr(type(sheet)), default)()
 
@@ -262,23 +276,25 @@ def get_excel_表头(sheet, 表头行下标__int或list):
         raise Exception("参数类型未支持")
 
     switch = {
-        excel类型["xlrd"]["sheet"] : xlrd_sheet,
+        excel类型["xlrd"]["sheet"]: xlrd_sheet,
     }
     return switch.get(repr(type(sheet)), default)()
-
-
-
 
 
 def to_excel序号_字母(数字):
     if isinstance(数字, str):
         try:
             数字 = int(数字)
-        except Exception as e: return 数字
+        except Exception as e:
+            return 数字
     return get_column_letter(数字)
+
+
 def to_excel序号_数字(字母):
     if isinstance(字母, int): return 字母
     return column_index_from_string(字母)
+
+
 def get_excel序号_列表(开头序号_字母或数字__包括开头, 结尾序号_字母或数字__包括结尾, 生成字母列表=True):
     开头序号 = to_excel序号_数字(开头序号_字母或数字__包括开头)
     结尾序号 = to_excel序号_数字(结尾序号_字母或数字__包括结尾)
@@ -288,8 +304,6 @@ def get_excel序号_列表(开头序号_字母或数字__包括开头, 结尾序
     if 生成字母列表:
         返回列表 = stream(返回列表).map(lambda i: to_excel序号_字母(i)).collect()
     return 返回列表
-
-
 
 
 def _get_excel_合并单元格__xlrd(sheet, 行下标, 列下标):
@@ -302,6 +316,8 @@ def _get_excel_合并单元格__xlrd(sheet, 行下标, 列下标):
                     单元格值 = sheet.cell_value(row_index_min, col_index_min)
                     break
     return 单元格值
+
+
 def _is_excel_合并单元格__xlrd(sheet, 行下标, 列下标):
     merged = sheet.merged_cells
     for (row_index_min, row_index_max, col_index_min, col_index_max) in merged:
@@ -309,6 +325,8 @@ def _is_excel_合并单元格__xlrd(sheet, 行下标, 列下标):
             if col_index_min <= 列下标 and 列下标 < col_index_max:
                 return True
     return False
+
+
 def _is_excel_第一行的合并单元格__xlrd(sheet, 行下标, 列下标):
     merged = sheet.merged_cells
     for (row_index_min, row_index_max, col_index_min, col_index_max) in merged:
@@ -316,6 +334,8 @@ def _is_excel_第一行的合并单元格__xlrd(sheet, 行下标, 列下标):
             if col_index_min <= 列下标 and 列下标 < col_index_max:
                 return True
     return False
+
+
 # endregion excel
 
 
@@ -353,40 +373,20 @@ def 计时点_生成器类(几个点一组=3, 几个组换行=5, 输出的点=".
         if next(每y行取第y行):
             最终输出 += "\n"
         yield 最终输出
+
+
 # endregion 生成器
 
 
 # region 装饰器
-
-# region 计时
-def 打点计时(func):
-    @wraps(func)  # 复制原始函数信息，并保留下来
-    def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
-
-        # region 执行原始函数前
-        计时器 = 打点计时类.实例化()
-        计时器.打点()
-        # endregion
-
-        rst = func(*args, **kwargs)  # 执行原始函数
-
-        # region 执行原始函数后
-        计时器.打点()
-        print_加锁(f'''{func.__name__}: {计时器.计时()}''')
-        # endregion
-
-        return rst
-
-    return inner
-# endregion 计时
-
-# region 线程
 # -- 关于初始化区，扫描到几个@就执行几次
 
-__线程池_装饰专用 = concurrent.futures.ThreadPoolExecutor(12)
+# region 线程
+from concurrent.futures import ThreadPoolExecutor
+__线程池_装饰专用 = ThreadPoolExecutor(12)
 
 
-def 线程模式_改(is_VIP = False, VIP_name = None):  # 这里的参数，是给装饰器的参数
+def 线程模式_改(is_VIP=False, VIP_name=None):  # 这里的参数，是给装饰器的参数
     # region 装饰器的初始化区1
     # endregion
     def wrap(func):
@@ -408,13 +408,14 @@ def 线程模式_改(is_VIP = False, VIP_name = None):  # 这里的参数，是�
             # endregion
 
             return rst
+
         # region 装饰器的初始化区4
         # endregion
         return inner
+
     # region 装饰器的初始化区2
     # endregion
     return wrap
-
 
 def 线程模式(func):
     # region 装饰器的初始化区3
@@ -431,6 +432,7 @@ def 线程模式(func):
         # endregion
 
         return rst
+
     # region 装饰器的初始化区4
     # endregion
     return inner
@@ -442,7 +444,6 @@ try:
     from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
     from apscheduler.schedulers.background import BackgroundScheduler
 except: pass
-
 
 _scheduler = None
 _定时任务列表 = []
@@ -512,7 +513,8 @@ def 启动定时任务():
         'processpool': ProcessPoolExecutor(5)  # 进程池
     }
     __job_defaults = {
-        'coalesce': True,  # 当有任务中途中断，后面恢复后，有N个任务没有执行 coalesce：true ，恢复的任务会执行一次  coalesce：false，恢复后的任务会执行N次配合misfire_grace_time使用
+        'coalesce': True,
+        # 当有任务中途中断，后面恢复后，有N个任务没有执行 coalesce：true ，恢复的任务会执行一次  coalesce：false，恢复后的任务会执行N次配合misfire_grace_time使用
         'max_instances': 1,  # 同一任务的运行实例个数
         'misfire_grace_time': 60  # 超时间隔，超过了就弃掉任务
     }
@@ -527,7 +529,8 @@ def 启动定时任务():
 @定时任务_启动()
 def 启动定时任务_阻塞主线程():
     while True:
-        time.sleep(60*60*1)
+        time.sleep(60 * 60 * 1)
+
 
 # endregion 定时任务
 
@@ -535,30 +538,28 @@ def 启动定时任务_阻塞主线程():
 
 
 # region shell
-try:
-    import subprocess
-    import platform
-except: pass
-
+import subprocess
+import platform
 
 
 def is_linux_system():
     return 'linux' in platform.system().lower()
 
+
 def is_windows_system():
     return 'windows' in platform.system().lower()
 
+
 def shell(cmd, stdout=subprocess.PIPE, encoding="utf8", shell=True, check=True, **kwargs):
-    return subprocess.run(cmd, stdout=stdout, encoding=encoding, shell=shell, check=check, **kwargs)\
-                    .stdout
+    return subprocess.run(cmd, stdout=stdout, encoding=encoding, shell=shell, check=check, **kwargs) \
+        .stdout
+
+
 # endregion shell
 
 
 # region 配置相关
-try:
-    import configparser
-except: pass
-
+import configparser
 
 
 def _configparser_to_dict(config):
@@ -591,7 +592,7 @@ class 配置类:
         try:
             if 类型 == "json":
                 if 来源 == "filesystem" or 来源 == "file_system" or 来源 == "file" or 来源 == "fs":
-                    dict配置 = json.loads(pathlib.Path(路径).read_text(encoding='UTF-8'))
+                    dict配置 = to_json_obj(pathlib.Path(路径).read_text(encoding='UTF-8'))
                 else:
                     raise Exception("配置加载失败，来源不支持")
             else:
@@ -639,7 +640,7 @@ class 配置类:
         self.变量集 = 变量集
         self.关联表 = 关联表
         return self
-    
+
     def 导出(self, is_del_before=False, vars={}):
         config_filePath = self.数据源["路径"]
         is_file_exist = os.path.exists(config_filePath)
@@ -714,11 +715,11 @@ def __get_conf_vlaue(conf, key_list, default=""):
             continue
     return value
 
-# region redis
+
+# region --redis
 try:
     import redis as redis_py
 except: pass
-
 
 _redis_conf = {
     "host": "127.0.0.1",
@@ -730,6 +731,7 @@ _redis_conf = {
     "decode_responses": True,
     "charset": "utf-8"
 }
+
 
 def _get_redis_conf(new_conf={}):
     conf = {}
@@ -746,19 +748,20 @@ def _get_redis_conf(new_conf={}):
 
 class Redis:
     def __init__(self, conf=_get_redis_conf()):
-        self.conn = redis_py.StrictRedis(host=conf["host"], port=conf["port"], password=conf["password"], db=conf["db"], decode_responses=conf["decode_responses"], charset=conf["charset"])
+        self.conn = redis_py.StrictRedis(host=conf["host"], port=conf["port"], password=conf["password"], db=conf["db"],
+                                         decode_responses=conf["decode_responses"], charset=conf["charset"])
 
     def __del__(self):
         if self.conn:
             try:
                 self.conn.close()
-            except: pass
+            except:
+                pass
 
     @staticmethod
     def 实例化(new_conf={}):
         conf = _get_redis_conf(new_conf)
         return Redis(conf)
-
 
     def 分布式锁_加锁(self, 锁名, 加锁人, 超时时间_秒=30):
         rst = self.conn.set(name=锁名, value=加锁人, nx=True, ex=超时时间_秒)
@@ -781,13 +784,13 @@ def redis(new_conf={}):
     return Redis.实例化(new_conf)
 
 
-# endregion oracle
+# endregion --redis
 
-# region oracle
+# region --oracle
+# https://blog.csdn.net/u013595395/article/details/108924071
 try:
     import cx_Oracle
 except: pass
-
 
 # os.environ['NLS_LANG'] = 'SIMPLIFIED CHINESE_CHINA.UTF8'
 # select userenv('language') from dual;
@@ -802,7 +805,6 @@ _oracle_conf = {
 }
 
 
-
 def _get_oracle_conf(new_conf={}):
     conf = {}
     conf["host"] = new_conf.get("host", _oracle_conf["host"])
@@ -815,7 +817,8 @@ def _get_oracle_conf(new_conf={}):
 
 class Oracle:
     def __init__(self, conf=_get_oracle_conf()):
-        self.conn = cx_Oracle.connect(f'{conf["username"]}/{conf["password"]}@{conf["host"]}:{conf["port"]}/{conf["db"]}')
+        self.conn = cx_Oracle.connect(
+            f'{conf["username"]}/{conf["password"]}@{conf["host"]}:{conf["port"]}/{conf["db"]}')
         self.cursor = self.conn.cursor()
 
         self.count = 0
@@ -823,19 +826,13 @@ class Oracle:
         self.lines = []
 
     def __del__(self):
-        if self.cursor:
-            try:
-                self.cursor.close()
-            except: pass
-        if self.conn:
-            try:
-                self.conn.close()
-            except: pass
+        self.close()
 
     @staticmethod
     def 实例化(new_conf={}):
         conf = _get_oracle_conf(new_conf)
         return Oracle(conf)
+
 
     def exec(self, sql: str, params=None):
         if params:
@@ -862,8 +859,8 @@ class Oracle:
             if repr(type(in_out[i])) == "<class 'cx_Oracle.Cursor'>":
                 cur_index = i
 
-        if cur_index != -1 and in_out[i]:
-            cursor = in_out[i]
+        if cur_index != -1 and in_out[cur_index]:
+            cursor = in_out[cur_index]
             self.rows = cursor.fetchall()
             self.lines = self._rows_to_lines(self.rows, cursor)
             self.count = cursor.rowcount
@@ -873,6 +870,29 @@ class Oracle:
             self.count = 0
 
         return self
+
+    def callfunc(self, proc_name: str, params=[], 返回值类型=cx_Oracle.STRING):
+        rst = self.cursor.callfunc(proc_name, 返回值类型, params)
+
+
+        cur_index = -1;
+        for i in range(len(params)):
+            if repr(type(params[i])) == "<class 'cx_Oracle.CURSOR'>":
+                cur_index = i
+
+        if cur_index != -1 and params[cur_index]:
+            cursor = params[cur_index].getvalue()
+            self.rows = cursor.fetchall()
+            self.lines = self._rows_to_lines(self.rows, cursor)
+            self.count = cursor.rowcount
+        else:
+            self.rows = ()
+            self.lines = {}
+            self.count = 0
+
+
+        return rst;
+
 
     def begin(self):
         self.conn.begin()
@@ -885,6 +905,17 @@ class Oracle:
     def rollback(self):
         self.conn.rollback()
         return self
+
+
+    def close(self):
+        if self.cursor:
+            try:
+                self.cursor.close()
+            except: pass
+        if self.conn:
+            try:
+                self.conn.close()
+            except: pass
 
     def _rows_to_lines(self, rows, cursor):
         try:
@@ -904,13 +935,12 @@ def oracle(new_conf={}):
     return Oracle.实例化(new_conf)
 
 
-# endregion oracle
+# endregion --oracle
 
-# region mysql
+# region --mysql
 try:
     import pymysql
 except: pass
-
 
 _mysql_conf = {
     "host": "106.13.231.168",
@@ -1013,16 +1043,22 @@ def mysql(new_conf={}):
     return Mysql.实例化(new_conf)
 
 
-# endregion mysql
-
+# endregion --mysql
 
 # endregion dao
 
 
 # region to_xxx
+import json
+import uuid
+import hashlib
+import ctypes
+
 
 def from_hex_to_byte(str):
     return bytes.fromhex(str)
+
+
 def from_byte_to_hex(字节):
     return 字节.hex()
 
@@ -1030,6 +1066,7 @@ def from_byte_to_hex(字节):
 # region time  -- datetime.datetime是原点，是核心中间类
 
 时间字符串_模板 = "%Y-%m-%d %H:%M:%S"
+
 
 def to_time_datetime(字符串or时间戳or时间元组=0, 格式字符串=时间字符串_模板, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
     obj = 字符串or时间戳or时间元组
@@ -1083,6 +1120,7 @@ def to_time_datetime(字符串or时间戳or时间元组=0, 格式字符串=时�
     增加的时间 = datetime.timedelta(seconds=增加几秒, minutes=增加几分钟, hours=增加几小时, days=增加几天)
     return 原点时间 + 增加的时间
 
+
 def to_time_str(datetime_or_字符串or时间戳or时间元组=0, 格式字符串=时间字符串_模板, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0, 格式字符串_旧=时间字符串_模板):
     if isinstance(datetime_or_字符串or时间戳or时间元组, str):
         时间对象 = to_time_datetime(datetime_or_字符串or时间戳or时间元组, 格式字符串_旧, 增加几秒, 增加几分钟, 增加几小时, 增加几天)
@@ -1090,9 +1128,11 @@ def to_time_str(datetime_or_字符串or时间戳or时间元组=0, 格式字符�
         时间对象 = to_time_datetime(datetime_or_字符串or时间戳or时间元组, 格式字符串, 增加几秒, 增加几分钟, 增加几小时, 增加几天)
     return 时间对象.strftime(格式字符串)
 
+
 def to_time_unix(datetime_or_字符串or时间戳or时间元组=0, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
     时间对象 = to_time_datetime(datetime_or_字符串or时间戳or时间元组, 时间字符串_模板, 增加几秒, 增加几分钟, 增加几小时, 增加几天)
     return time.mktime(时间对象.timetuple())
+
 
 def to_time_tuple(datetime_or_字符串or时间戳or时间元组=0, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0):
     时间对象 = to_time_datetime(datetime_or_字符串or时间戳or时间元组, 时间字符串_模板, 增加几秒, 增加几分钟, 增加几小时, 增加几天)
@@ -1102,11 +1142,14 @@ def to_time_tuple(datetime_or_字符串or时间戳or时间元组=0, 增加几秒
 def to_now_datetime():
     return to_time_datetime(0)
 
+
 def to_now_str(格式字符串=时间字符串_模板):
     return to_time_str(0, 格式字符串)
 
+
 def to_now_unix():
     return to_time_unix(0)
+
 
 def to_now_tuple():
     return to_time_tuple(0)
@@ -1125,8 +1168,10 @@ to_now_时间字符串 = functools.partial(to_now_str)
 def x分钟前的unix(分钟数=0):
     return to_time_unix(0, 增加几分钟=-分钟数)
 
+
 def 整分钟数的当前时间(整多少分钟=30):
     return 整分钟数的指定时间(整多少分钟=整多少分钟)
+
 
 def 整分钟数的指定时间(指定的时间=None, 整多少分钟=30):
     分钟间隔 = 整多少分钟
@@ -1142,17 +1187,19 @@ def 整分钟数的指定时间(指定的时间=None, 整多少分钟=30):
         if 指定的时间 >= 拿来比较的时间:
             return 拿来比较的时间
 
+
 # 获取当前时间的字符串
 def getCurrentDatetime_str(format_str="%Y-%m-%d %H:%M:%S"):
     return datetime.datetime.now().strftime(format_str)
+
 
 # endregion time
 
 def to_self(obj):
     return to_json_obj(to_json_str(obj))
 
-# region json
 
+# region --json
 class _MyEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, datetime.datetime):
@@ -1161,12 +1208,14 @@ class _MyEncoder(json.JSONEncoder):
             return obj.decode("utf8")
         raise Exception(f"{obj}  {repr(type(obj))}  不能被处理")
 
+
 def _get_dict(obj):
     try:
         rst = dict(obj)
     except:
         rst = obj.__dict__
     return rst
+
 
 def from_class_to_dict(obj):
     obj = _get_dict(obj)
@@ -1177,17 +1226,20 @@ def from_class_to_dict(obj):
             pass
     return obj
 
-def to_json_str(obj,ensure_ascii=False,check_class=True):
+
+def to_json_str(obj, ensure_ascii=False, check_class=True):
     if check_class:
         try:
             obj_dict = obj.__dict__
             obj = from_class_to_dict(obj)
         except:
             pass
-    return json.dumps(obj,ensure_ascii=ensure_ascii, cls=_MyEncoder)
+    return json.dumps(obj, ensure_ascii=ensure_ascii, cls=_MyEncoder)
+
 
 def to_json_file(obj, 文件对象, ensure_ascii=False, indent=2):
     return json.dump(obj, 文件对象, ensure_ascii=ensure_ascii, indent=indent)
+
 
 def to_json_obj(字符串or文件对象):
     def from_str_to_dict():
@@ -1205,7 +1257,9 @@ def to_json_obj(字符串or文件对象):
     }
     return switch.get(repr(type(字符串or文件对象)), default)()
 
-# endregion json
+
+# endregion --json
+
 
 def to_md5(data):
     type_str = repr(type(data))
@@ -1217,6 +1271,7 @@ def to_md5(data):
     md5.update(data)
     return md5.hexdigest()
 
+
 def to_uuid(去除中横线=True, 使用随机数=True):
     if 使用随机数:
         id = uuid.uuid4()
@@ -1226,6 +1281,7 @@ def to_uuid(去除中横线=True, 使用随机数=True):
     if 去除中横线:
         id = id.replace("-", "")
     return id
+
 
 __to_变量名__pattren = re.compile(r'[\W+\w+]*?to_变量名\((\w+)\)')
 __to_变量名__变量名集 = []
@@ -1240,9 +1296,18 @@ def to_变量名(变量):
 
 
 # region fileSystem
+try:
+    import pyperclip
+except: pass
+def ctrl_c(text):
+    pyperclip.copy(text)
+def ctrl_v():
+    return pyperclip.paste()
+
 
 def exist(文件全路径):
     return os.path.exists(文件全路径)
+
 
 def isdir(文件全路径):
     if exist(文件全路径):
@@ -1253,8 +1318,10 @@ def isdir(文件全路径):
         else:
             return True
 
+
 def pwd(文件全路径):
     return os.path.abspath(文件全路径)
+
 
 def ls(文件全路径, 包含前缀=True, 选项=""):
     选项 = 选项.lower()
@@ -1271,9 +1338,10 @@ def ls(文件全路径, 包含前缀=True, 选项=""):
     else:
         if 包含前缀:
             return stream(os.listdir(文件全路径)) \
-                    .map(lambda i: os.path.join(文件全路径, i)).collect()
+                .map(lambda i: os.path.join(文件全路径, i)).collect()
         else:
             return os.listdir(文件全路径)
+
 
 def mkdir(文件全路径, 选项="-p"):
     选项 = 选项.lower()
@@ -1282,6 +1350,7 @@ def mkdir(文件全路径, 选项="-p"):
             os.makedirs(文件全路径)
         else:
             os.mkdir(文件全路径)
+
 
 def mk(文件全路径, 已有跳过_不删除=True, 选项="-p"):
     选项 = 选项.lower()
@@ -1300,6 +1369,7 @@ def mk(文件全路径, 已有跳过_不删除=True, 选项="-p"):
         with open(文件全路径, "a"):
             pass
 
+
 def rm(文件全路径, 选项="-rf"):
     if exist(文件全路径):
         if isdir(文件全路径):
@@ -1314,10 +1384,12 @@ def rm(文件全路径, 选项="-rf"):
         else:
             os.remove(文件全路径)
 
+
 def clear(文件全路径, 选项="-rf"):
     if not isdir(文件全路径): rm(文件全路径, 选项); return;
     if not exist(文件全路径): mk(文件全路径, 选项="-p"); return;
     stream(ls(文件全路径)).forEach(lambda f: rm(f, 选项))
+
 
 def cp(旧文件, 新文件, 不删旧文件=True):
     旧文件类型 = "dir" if isdir(旧文件) else "file"
@@ -1367,53 +1439,63 @@ def cp(旧文件, 新文件, 不删旧文件=True):
 
 def get文件名(文件全路径):
     return os.path.basename(文件全路径)
+
+
 def get文件后缀(文件全路径):
     return os.path.splitext(文件全路径)[1]
+
+
 def get文件所在目录(文件全路径):
     return os.path.dirname(文件全路径)
 
 
 def getAllFilePaths(baseFilePath, is_deep=True):
     return getDeepFilePaths(baseFilePath, "*", is_deep)
+
+
 # 递归获取 指定目录下，拥有指定后缀，的文件路径
 def getDeepFilePaths(baseFilePath, ext_list="txt", is_deep=True):
     rst_filePaths = []
     _getDeepFilePaths(rst_filePaths, baseFilePath, ext_list, is_deep)
     return rst_filePaths
+
+
 def _getDeepFilePaths(rst_filePaths, baseFilePath, ext_list="txt", is_deep=True):
     rst_filePaths += _getCurrentFilePaths(baseFilePath, ext_list)
     # 递归当前目录下的目录
     if is_deep:
         f_list = stream(os.listdir(baseFilePath)) \
-                    .map(lambda fileName: os.path.join(baseFilePath, fileName)) \
-                    .collect()
+            .map(lambda fileName: os.path.join(baseFilePath, fileName)) \
+            .collect()
         stream(f_list) \
             .filter(lambda f: os.path.isdir(f)) \
             .forEach(lambda dir: _getDeepFilePaths(rst_filePaths, dir, ext_list, True))
+
+
 def _getCurrentFilePaths(baseFilePath, ext_list="txt"):
     rst_filePaths = []
     if not baseFilePath:
         baseFilePath = "."
     # 处理ext后缀
     is_all_ext = False
-    if not isinstance(ext_list, (list,tuple)):
+    if not isinstance(ext_list, (list, tuple)):
         ext_list = [ext_list]
-    selectExt_list = stream(ext_list).map(lambda i: i if (i and i[0]==".") else f".{i}").collect()
+    selectExt_list = stream(ext_list).map(lambda i: i if (i and i[0] == ".") else f".{i}").collect()
     if ("." in selectExt_list) or (".None" in selectExt_list):
         selectExt_list.append("")
     if (".*" in selectExt_list):
         is_all_ext = True
-    selectExt_list = stream(selectExt_list).filter(lambda i: i!="." and i!=".None" and i!=".*").collect()
+    selectExt_list = stream(selectExt_list).filter(lambda i: i != "." and i != ".None" and i != ".*").collect()
 
     # 获取当前目录下的所有文件名
     f_list = stream(os.listdir(baseFilePath)) \
-                .map(lambda fileName: os.path.join(baseFilePath,fileName)) \
-                .collect()
+        .map(lambda fileName: os.path.join(baseFilePath, fileName)) \
+        .collect()
 
     if is_all_ext:
         rst_filePaths += stream(f_list) \
-                            .filter(lambda f: not os.path.isdir(f)) \
-                            .collect()
+            .filter(lambda f: not os.path.isdir(f)) \
+            .collect()
     else:
         # 将当前目录下后缀名为指定后缀的文件，放入rst_filePaths列表
         stream(f_list) \
@@ -1421,6 +1503,7 @@ def _getCurrentFilePaths(baseFilePath, ext_list="txt"):
             .filter(lambda f: os.path.splitext(f)[1] in selectExt_list) \
             .forEach(lambda f: rst_filePaths.append(f))
     return rst_filePaths
+
 
 # endregion fileSystem
 
@@ -1478,55 +1561,57 @@ _静态全局序号生成器 = 线程序号类.实例化(线程间独立=False)
 
 def 序号_重置(下一个序号数字=1):
     _静态序号生成器.序号_重置(下一个序号数字)
+
+
 def 序号(字符串模板="(1)"):
     return _静态序号生成器.序号(字符串模板)
 
+
 def 全局序号_重置(下一个序号数字=1):
     _静态全局序号生成器.序号_重置(下一个序号数字)
+
+
 def 全局序号(字符串模板="(1)"):
     return _静态全局序号生成器.序号(字符串模板)
+
 
 # endregion 线程序号
 
 
 # region 打点计时
 
-# region 转换秒数相关
+# region --转换秒数相关
 _毫秒_秒数 = 0.001
 _秒_秒数 = _毫秒_秒数 * 1000
 _分钟_秒数 = _秒_秒数 * 60
 _小时_秒数 = _分钟_秒数 * 60
 _天_秒数 = _小时_秒数 * 24
-
-
-def 拆解秒数(秒数, 各时间单位值字典={}):
+def _拆解秒数(秒数, 各时间单位值字典={}):
     if 秒数 > _天_秒数 + _小时_秒数:
         除余结果 = divmod(秒数, _天_秒数)
         各时间单位值字典["天"] = int(除余结果[0])
-        return "%d 天, %s" % (int(除余结果[0]), 拆解秒数(除余结果[1], 各时间单位值字典))
+        return "%d 天, %s" % (int(除余结果[0]), _拆解秒数(除余结果[1], 各时间单位值字典))
 
     elif 秒数 > _小时_秒数 + _分钟_秒数:
         除余结果 = divmod(秒数, _小时_秒数)
         各时间单位值字典["小时"] = int(除余结果[0])
-        return '%d 小时, %s' % (int(除余结果[0]), 拆解秒数(除余结果[1], 各时间单位值字典))
+        return '%d 小时, %s' % (int(除余结果[0]), _拆解秒数(除余结果[1], 各时间单位值字典))
 
     elif 秒数 > _分钟_秒数 + _秒_秒数:
         除余结果 = divmod(秒数, _分钟_秒数)
         各时间单位值字典["分钟"] = int(除余结果[0])
-        return '%d 分钟, %s' % (int(除余结果[0]), 拆解秒数(除余结果[1], 各时间单位值字典))
+        return '%d 分钟, %s' % (int(除余结果[0]), _拆解秒数(除余结果[1], 各时间单位值字典))
 
     elif 秒数 > _秒_秒数 + _毫秒_秒数:
         除余结果 = divmod(秒数, _秒_秒数)
         各时间单位值字典["秒"] = int(除余结果[0])
-        return '%d 秒, %s' % (int(除余结果[0]), 拆解秒数(除余结果[1], 各时间单位值字典))
+        return '%d 秒, %s' % (int(除余结果[0]), _拆解秒数(除余结果[1], 各时间单位值字典))
 
     else:
         除余结果 = divmod(秒数, _毫秒_秒数)
         各时间单位值字典["毫秒"] = int(除余结果[0])
         return "%d 毫秒" % int(除余结果[0])
-
-
-# endregion
+# endregion --转换秒数相关
 
 class 打点计时类:
     class 时间值存储类:
@@ -1545,7 +1630,7 @@ class 打点计时类:
             self.各时间单位值字典["分钟"] = 0
             self.各时间单位值字典["秒"] = 0
             self.各时间单位值字典["毫秒"] = 0
-            return 拆解秒数(self.时间值, self.各时间单位值字典)
+            return _拆解秒数(self.时间值, self.各时间单位值字典)
 
         def 秒数(self):
             return self.时间值
@@ -1636,6 +1721,33 @@ def 计时(起始点=None, 结束点=None):
     return _静态计时器.计时(起始点, 结束点)
 
 
+def 计时_print(起始点=None, 结束点=None, is多打个点=True):
+    if is多打个点:
+        打点()
+    print(f"耗时: {计时(起始点,结束点)}")
+
+# region --装饰器
+def 打点计时(func):
+    @wraps(func)  # 复制原始函数信息，并保留下来
+    def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
+
+        # region 执行原始函数前
+        计时器 = 打点计时类.实例化()
+        计时器.打点()
+        # endregion
+
+        rst = func(*args, **kwargs)  # 执行原始函数
+
+        # region 执行原始函数后
+        计时器.打点()
+        print_加锁(f'''{func.__name__}: {计时器.计时()}''')
+        # endregion
+
+        return rst
+
+    return inner
+# endregion --装饰器
+
 # endregion 打点计时
 
 
@@ -1645,6 +1757,7 @@ def 计时(起始点=None, 结束点=None):
 def _delay_x_0_s(fixed_delay_num):
     x = float(fixed_delay_num)
     time.sleep(x)
+
 # 随机延时 0~y 秒
 def _delay_0_y_s(random_delay_num):
     y = float(random_delay_num)
@@ -1672,31 +1785,35 @@ delay_between_x_y_s = functools.partial(delay_x_to_y_s)
 def delay_x_s(固定延时几秒):
     _delay_x_0_s(固定延时几秒)
 
+
 def delay_y_s(随机延时0到几秒):
     _delay_0_y_s(随机延时0到几秒)
+
 
 # endregion 随机延时
 
 
 # region 数据集合
 
-def list去掉指定项(数据源list, 序号列表=None, 序号从0开始=True, 元素值列表=None, 不改变原数组=True):
+
+# 删除lsit中的某项
+def delListItem(数据源list, 下标列表=None, 下标从0开始=True, 元素值列表=None, 不改变原数组=True):
     if 不改变原数组:
         数据源list = to_self(数据源list)
 
-    if 序号列表:
-        if isinstance(序号列表, str):
-            序号列表 = int(序号列表)
-        if isinstance(序号列表, int):
-            序号列表 = [序号列表]
-        if not 序号从0开始:
-            序号列表 = stream(序号列表).map(lambda i: int(i) - 1).collect()
-        序号列表.sort(key=None, reverse=True)
-        for i in 序号列表:
+    if 下标列表:
+        if isinstance(下标列表, str):
+            下标列表 = int(下标列表)
+        if isinstance(下标列表, int):
+            下标列表 = [下标列表]
+        if not 下标从0开始:
+            下标列表 = stream(下标列表).map(lambda i: int(i) - 1).collect()
+        下标列表.sort(key=None, reverse=True)
+        for i in 下标列表:
             数据源list.pop(i)
 
     if 元素值列表:
-        if not isinstance(元素值列表, (list,tuple)):
+        if not isinstance(元素值列表, (list, tuple)):
             元素值列表 = [元素值列表]
         for i in 元素值列表:
             if i in 数据源list:
@@ -1704,36 +1821,40 @@ def list去掉指定项(数据源list, 序号列表=None, 序号从0开始=True,
 
     return 数据源list
 
-def list去掉指定项_多层list(数据源list, 多层序号字符串_list=None, 序号从0开始=True, 元素值列表=None, 不改变原数组=True, 序号分隔符="."):
+# 删除多重lsit中的某项
+def delMultListItem(数据源list, 多层下标字符串_list=None, 下标从0开始=True, 元素值列表=None, 不改变原数组=True, 下标分隔符="."):
     if 不改变原数组:
         数据源list = to_self(数据源list)
 
-    if 多层序号字符串_list:
-        if isinstance(多层序号字符串_list, str):
-            多层序号字符串_list = [多层序号字符串_list]
-        for 多层序号字符串 in 多层序号字符串_list:
-            序号list = 多层序号字符串.split(序号分隔符)
+    if 多层下标字符串_list:
+        if isinstance(多层下标字符串_list, str):
+            多层下标字符串_list = [多层下标字符串_list]
+        for 多层序号字符串 in 多层下标字符串_list:
+            序号list = 多层序号字符串.split(下标分隔符)
             临时list = 数据源list
             for i in 序号list[:-1]:
-                if 序号从0开始:
+                if 下标从0开始:
                     临时list = 临时list[int(i)]
                 else:
-                    临时list = 临时list[int(i)-1]
-            list去掉指定项(临时list,序号list[-1],序号从0开始,元素值列表=None,不改变原数组=False)
+                    临时list = 临时list[int(i) - 1]
+            delListItem(临时list, 序号list[-1], 下标从0开始, 元素值列表=None, 不改变原数组=False)
 
     if 元素值列表:
         if not isinstance(元素值列表, (list, tuple)):
             元素值列表 = [元素值列表]
         for 元素值 in 元素值列表:
             临时list = 数据源list
+
             def 递归删除list中的指定元素(数据源list, 元素值):
-                list去掉指定项(数据源list, None, 序号从0开始, 元素值列表=[元素值], 不改变原数组=False)
+                delListItem(数据源list, None, 下标从0开始, 元素值列表=[元素值], 不改变原数组=False)
                 for i in 数据源list:
                     if isinstance(i, (list, tuple)):
                         递归删除list中的指定元素(i, 元素值)
-            递归删除list中的指定元素(临时list,元素值)
+
+            递归删除list中的指定元素(临时list, 元素值)
 
     return 数据源list
+
 
 
 # 获取多层dict的值
@@ -1756,6 +1877,7 @@ def getDictValue(my_dict, key="", default=None, 分隔符="."):
         return my_dict
     except:
         return default
+
 # 设置多层dict的值
 def setDictValue(my_dict, key, value, 分隔符='.'):
     keys = key.split(分隔符)
@@ -1772,10 +1894,13 @@ def setDictValue(my_dict, key, value, 分隔符='.'):
             else:
                 my_dict = my_dict[i]
 
+
 # endregion 数据集合
 
 
 # region 流式计算
+from functools import cmp_to_key
+
 
 class ListStream:
     def __init__(self, my_list=[]):
@@ -1803,6 +1928,9 @@ class ListStream:
     def sort(self, key=None, reverse=False):
         self.list.sort(key=key, reverse=reverse)
         return self
+    def sortBy(self, cmp, reverse=False):
+        self.list.sort(key=cmp_to_key(cmp), reverse=reverse)
+        return self
 
 
 class DictStream(ListStream):
@@ -1829,6 +1957,7 @@ class DictStream(ListStream):
         for i in old_list:
             new_dict[i["key"]] = i["value"]
         return new_dict
+
 
 def stream(iteration):
     def list_处理():
