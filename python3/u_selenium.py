@@ -1,64 +1,80 @@
-import time
-
-from u_工具 import delay_x_s, ls, 计时点_生成器类
+# -*- coding: utf-8 -*-
+# @Time    : 2022-01-07
+# @Author  : hlmio
+import selenium
 from selenium.webdriver import ActionChains
 from selenium.webdriver.remote.webelement import WebElement
 from selenium import webdriver
+from selenium.webdriver.remote.webdriver import WebDriver as RemoteWebDriver
+
+from u_工具 import *
+
+
+class 谷歌WebDriver(webdriver.Chrome):
+    def __init__(self,*args,**kwargs):
+        super().__init__(*args,**kwargs)
+    def __del__(self):
+        try:
+            self.quit()
+        except: pass
+
+    def set隐式等待时间(self, 等待时间_秒=15):
+        self.implicitly_wait(等待时间_秒)  # 查找元素时，元素若在加载，最多等待这个时间
+    def set分辨率(self,x=1280,y=720,是否全屏=False):
+        if 是否全屏:
+            self.最大化或最小化浏览器(True)
+            return
+        self.set_window_size(x,y)
+    def 最大化或最小化浏览器(self, 是否最大化=True):
+        if 是否最大化:
+            self.maximize_window()
+        else:
+            self.minimize_window()
+    def 切换到第几个窗口_从1开始(self, number, 后等待几秒=1):
+        all_hand = self.window_handles
+        self.switch_to.window(all_hand[int(number)-1])
+        if 后等待几秒:
+            delay_x_s(1)
+
+    def 鼠标移动到指定位置(self, element: WebElement, x=None, y=None, hover多少秒=None):
+        if x and y:
+            ActionChains(self).move_by_offset(x, y).perform()
+        else:
+            ActionChains(self).move_to_element(element).perform()
+        if hover多少秒:
+            delay_x_s(hover多少秒)
+    def 左键单击(self, element: WebElement, 模拟鼠标点击=True, x=None, y=None, hover多少秒才单击=1.2):
+        if 模拟鼠标点击:
+            鼠标移动到指定位置(self, element, x, y, hover多少秒才单击)
+            ActionChains(self).click().perform()
+        else:
+            element.click()
+    def 左键单击_by_css(self, css_str, hover多少秒才单击=1.2):
+        element = self.find_element_by_css_selector(css_str)
+        return self.左键单击(element, hover多少秒才单击=hover多少秒才单击)
+    def 左键单击_by_xpath(self, xpath_str, hover多少秒才单击=1.2):
+        element = self.find_element_by_xpath(xpath_str)
+        return self.左键单击(element, hover多少秒才单击=hover多少秒才单击)
 
 
 
-def 左键单击(driver, element :WebElement, 模拟鼠标点击=True, x=None,y=None, hover多少秒=1.2):
-    if 模拟鼠标点击:
-        鼠标移动到指定位置(driver, element, x,y ,hover多少秒)
-        ActionChains(driver).click().perform()
-    else:
-        element.click()
+# 1
+def init_chrome(download_path=None, 隐式等待多少秒=None):
+    options = webdriver.ChromeOptions()
+    if download_path:
+        mk(download_path)
+        download_path = pwd(download_path)
+        prefs = {'profile.default_content_settings.popups': 0, 'download.default_directory': download_path}
+        options.add_experimental_option('prefs', prefs)
+    options.add_argument('-allow-running-insecure-content')
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option('useAutomationExtension', False)
 
-def 鼠标移动到指定位置(driver, element :WebElement, x=None,y=None, hover多少秒=None):
-    if x and y:
-        ActionChains(driver).move_by_offset(x, y).perform()
-    else:
-        ActionChains(driver).move_to_element(element).perform()
-    if hover多少秒:
-        delay_x_s(hover多少秒)
-
-
-# 只允许文件夹内下载一个文件
-def 等待下载完成(download_path, 下载中文件的后缀=".part", 等待间隔_秒=10, 几个计时点一组=3, 几组计时点换行=4):
-    计时点 = 计时点_生成器类(几个计时点一组, 几组计时点换行)
-    print(f"# 一个点代表{等待间隔_秒}秒，一行{int(等待间隔_秒 * 几个计时点一组 * 几组计时点换行 / 60)}分钟")
-    空文件夹次数 = 0
-    is_ok = False
-    while not is_ok:
-        delay_x_s(等待间隔_秒)
-        print(next(计时点),end="")
-        文件名数组 = ls(download_path)
-        if len(文件名数组) == 0:
-            空文件夹次数+=1
-            continue
-        is_ok = True
-        for 文件名 in 文件名数组:
-            if 文件名.endswith(下载中文件的后缀):
-                is_ok = False
-                break
-        if 空文件夹次数 > int(60/等待间隔_秒) * 10:
-            raise Exception("空文件过久，疑似未触发下载")
-    print()
-    time.sleep(2)
-
-
-
-# 切换浏览器窗口 number为第几个窗口 从0开始
-def switchingWindow(browser, number):
-    all_hand = browser.window_handles
-    browser.switch_to.window(all_hand[number])
-    time.sleep(1)
-
-
-def 设置隐式等待时间(driver, 等待时间_秒=15):
-    driver.implicitly_wait(等待时间_秒)  # 查找元素时，元素若在加载，最多等待这个时间
-
-
+    # driver = webdriver.Chrome(chrome_options=options)
+    driver = 谷歌WebDriver(chrome_options=options)
+    if 隐式等待多少秒:
+        driver.implicitly_wait(隐式等待多少秒)
+    return driver
 def init_firefox(download_path=None, 隐式等待多少秒=None):
     profile = webdriver.FirefoxProfile()
     if download_path:
@@ -72,7 +88,6 @@ def init_firefox(download_path=None, 隐式等待多少秒=None):
     文件类型 = "application/x-excel"
     profile.set_preference('browser.helperApps.neverAsk.openFile', 文件类型)
     profile.set_preference("browser.helperApps.neverAsk.saveToDisk", 文件类型)
-    profile.set_preference('general.useragent.override','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36')
 
     driver = webdriver.Firefox(firefox_profile=profile)
     if 隐式等待多少秒:
@@ -80,23 +95,71 @@ def init_firefox(download_path=None, 隐式等待多少秒=None):
     return driver
 
 
-def init_chrome(download_path=None, 隐式等待多少秒=None):
-    options = webdriver.ChromeOptions()
-    if download_path:
-        prefs = {'profile.default_content_settings.popups': 0, 'download.default_directory': download_path}
-        options.add_experimental_option('prefs', prefs)
-    options.add_argument('-allow-running-insecure-content')
-    options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_experimental_option('useAutomationExtension', False)
+# 2
+def 设置隐式等待时间(driver, 等待时间_秒=15):
+    assert isinstance(driver, RemoteWebDriver)
+    driver.implicitly_wait(等待时间_秒)  # 查找元素时，元素若在加载，最多等待这个时间
+def 设置分辨率(driver,x=1280,y=720,是否全屏=False):
+    if 是否全屏:
+        最大化或最小化浏览器(driver,True)
+        return
+    driver.set_window_size(x,y)
+def 最大化或最小化浏览器(driver, 是否最大化=True):
+    if 是否最大化:
+        driver.maximize_window()
+    else:
+        driver.minimize_window()
+def 切换到第几个窗口_从1开始(driver, number, 后等待几秒=1):
+    all_hand = driver.window_handles
+    driver.switch_to.window(all_hand[int(number)-1])
+    if 后等待几秒:
+        delay_x_s(1)
 
-    driver = webdriver.Chrome(chrome_options=options)
-    # driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
-    #     "source": """
-    #         Object.defineProperty(navigator, 'webdriver', {
-    #           get: () => undefined
-    #         })
-    #     """
-    # })
-    if 隐式等待多少秒:
-        driver.implicitly_wait(隐式等待多少秒)
-    return driver
+
+# 3
+def 鼠标移动到指定位置(driver, element :WebElement, x=None,y=None, hover多少秒=None):
+    if x and y:
+        ActionChains(driver).move_by_offset(x, y).perform()
+    else:
+        ActionChains(driver).move_to_element(element).perform()
+    if hover多少秒:
+        delay_x_s(hover多少秒)
+def 左键单击(driver, element :WebElement, 模拟鼠标点击=True, x=None,y=None, hover多少秒才单击=1.2):
+    if 模拟鼠标点击:
+        鼠标移动到指定位置(driver, element, x,y ,hover多少秒才单击)
+        ActionChains(driver).click().perform()
+    else:
+        element.click()
+def 左键单击_by_css(driver, css_str, hover多少秒才单击=1.2):
+    element = driver.find_element_by_css_selector(css_str)
+    return 左键单击(driver, element, hover多少秒才单击=hover多少秒才单击)
+def 左键单击_by_xpath(driver, xpath_str, hover多少秒才单击=1.2):
+    element = driver.find_element_by_xpath(xpath_str)
+    return 左键单击(driver, element, hover多少秒才单击=hover多少秒才单击)
+
+
+# 其他
+# 只允许文件夹内下载一个文件
+def 等待下载完成(download_path, 预计有几个文件=1, 用来自动判断文件后缀的driver=None, 下载中文件的后缀=".crdownload", 等待间隔_秒=10, 几个计时点一组=3, 几组计时点换行=4):
+    driver = 用来自动判断文件后缀的driver
+    if driver:
+        if isinstance(driver, selenium.webdriver.chrome.webdriver.WebDriver):
+            下载中文件的后缀 = ".crdownload"
+        if isinstance(driver, selenium.webdriver.firefox.webdriver.WebDriver):
+            下载中文件的后缀 = ".part"
+
+    计时点 = 计时点_生成器类(几个计时点一组, 几组计时点换行)
+    print(f"// 一个点代表{等待间隔_秒}秒，一行{int(等待间隔_秒 * 几个计时点一组 * 几组计时点换行 / 60)}分钟")
+    is_ok = False
+    while not is_ok:
+        delay_x_s(等待间隔_秒)
+        print(next(计时点),end="")
+        文件名数组 = ls(download_path)
+        if len(文件名数组) == 0 or len(文件名数组) != 预计有几个文件:
+            continue
+        is_ok = True
+        for 文件名 in 文件名数组:
+            if 文件名.endswith(下载中文件的后缀):
+                is_ok = False
+                break
+    print()
