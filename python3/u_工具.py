@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2021-11-08
+# @Time    : 2022-01-12
 # @Author  : hlmio
 import os
 import shutil
@@ -13,6 +13,7 @@ import traceback
 import pathlib
 import functools
 from functools import wraps
+from decimal import *
 
 
 # region 未分类
@@ -1070,6 +1071,36 @@ def from_hex_to_byte(str):
 
 def from_byte_to_hex(字节):
     return 字节.hex()
+
+
+# region 基本数据类型
+def to_number(文本, isDecimal=True):
+    if isDecimal:
+        rst = Decimal("0.00")
+    else:
+        rst = 0.00
+
+    try:
+        if 文本:
+            if not isinstance(文本, str):
+                str(文本)
+            if isDecimal:
+                rst = Decimal(str)
+            else:
+                rst = float(str)
+    except: pass
+    return rst
+
+def to_round(数据, 保留几位=2):
+    if isinstance(数据,float):
+        数据 = Decimal(str(数据))
+    if not isinstance(数据,Decimal):
+        raise Exception("当前只支持 float 和 Decimal")
+    return round(数据, 保留几位)
+
+
+# endregion 基本数据类型
+
 
 
 # region time  -- datetime.datetime是原点，是核心中间类
