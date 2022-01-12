@@ -223,7 +223,8 @@ def get_excel_行(sheet, 行下标):
     def xlrd_sheet():
         值list = []
         for j in range(get_excel_列数(sheet)):
-            值list.append(get_excel_值(sheet, 行下标, j))
+            值 = get_excel_值(sheet, 行下标, j)
+            值list.append(值)
         return 值list
 
     def default():
@@ -1085,18 +1086,18 @@ def to_number(文本, isDecimal=True):
             if not isinstance(文本, str):
                 str(文本)
             if isDecimal:
-                rst = Decimal(str)
+                rst = Decimal(文本)
             else:
-                rst = float(str)
+                rst = float(文本)
     except: pass
     return rst
 
-def to_round(数据, 保留几位=2):
-    if isinstance(数据,float):
-        数据 = Decimal(str(数据))
-    if not isinstance(数据,Decimal):
-        raise Exception("当前只支持 float 和 Decimal")
-    return round(数据, 保留几位)
+def to_round(数据, 保留几位小数=0):
+    数据_str = str(数据)
+    整数位数 = 数据_str.find(".")
+    if 数据 < 0:
+        整数位数 -= 1
+    return Context(prec=整数位数 + 保留几位小数, rounding=ROUND_HALF_UP).create_decimal(数据_str)
 
 
 # endregion 基本数据类型
