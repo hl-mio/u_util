@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2022-01-12
+# @Time    : 2022-01-22
 # @Author  : hlmio
 import os
 import shutil
@@ -882,9 +882,10 @@ class Oracle:
 
         return self
 
-    def callfunc(self, proc_name: str, params=[], 返回值类型=cx_Oracle.STRING):
+    def callfunc(self, proc_name: str, params=[], 返回值类型=None):
+        if not 返回值类型:
+            返回值类型 = cx_Oracle.STRING
         rst = self.cursor.callfunc(proc_name, 返回值类型, params)
-
 
         cur_index = -1;
         for i in range(len(params)):
