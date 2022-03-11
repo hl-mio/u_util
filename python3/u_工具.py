@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2022-01-22
+# @Time    : 2022-02-16
 # @Author  : hlmio
 import os
 import shutil
@@ -18,12 +18,18 @@ from decimal import *
 
 # region 未分类
 
-def get_file_rows(文件全路径, txt_分隔符=",", excel_sheet下标或名称=0, encoding="utf8", txt_is去掉所有空行=True):
+def get_file_rows(文件全路径, txt_分隔符=",", excel_sheet下标或名称=0, encoding="utf8", txt_is去掉所有空行=True, is全部读取为字符串=True):
+    rows = []
     if "xls" in 文件全路径 or "xlsx" in 文件全路径:
-        return _get_file_rows__excel(文件全路径, excel_sheet下标或名称, encoding)
+        rows = _get_file_rows__excel(文件全路径, excel_sheet下标或名称, encoding)
     else:
-        return _get_file_rows__txt(文件全路径, txt_分隔符, encoding, txt_is去掉所有空行)
-
+        rows = _get_file_rows__txt(文件全路径, txt_分隔符, encoding, txt_is去掉所有空行)
+    if is全部读取为字符串:
+        new_rows = []
+        for i in rows:
+            new_rows.append(stream(i).map(lambda x:str(x)).collect())
+        rows = new_rows
+    return rows
 
 def _get_file_rows__txt(文件全路径, 分隔符=",", encoding="utf8", is去掉所有空行=True):
     rows = []
@@ -40,7 +46,6 @@ def _get_file_rows__txt(文件全路径, 分隔符=",", encoding="utf8", is去�
         if rows and rows[0] and rows[0][0].startswith(bom):
             rows[0][0] = rows[0][0].split(bom, 1)[1]
     return rows
-
 
 def _get_file_rows__excel(文件全路径, sheet下标或名称=0, encoding="utf8"):
     rows = []
@@ -74,7 +79,6 @@ def flask_get输入参数(request, 参数名, 默认值=None, 参数在json的�
 
 __lock_print = threading.Lock()
 
-
 def print_加锁(*args, **kwargs):
     with __lock_print:
         print(*args, **kwargs)
@@ -91,12 +95,198 @@ def change_locals(frame, 修改表={}):
 # endregion 未分类
 
 
-# region excel
+# region 生成器
+def 每x行取第y行_生成器类(x, y):
+    行数 = -1 - (y - 1)
+    while True:
+        行数 += 1
+        if 行数 % x == 0:
+            yield True
+        else:
+            yield False
+
+
+def 每x行取任意行_生成器类(x, 行编号=[]):
+    if isinstance(行编号, int):
+        行编号 = [行编号]
+    行数 = -1
+    while True:
+        行数 += 1
+        余数 = 行数 % x
+        if (余数 + 1) in 行编号:
+            yield True
+        else:
+            yield False
+
+# endregion 生成器
+
+
+# region 装饰器
+# -- 关于初始化区，扫描到几个@就执行几次
+
+# region --线程
+from concurrent.futures import ThreadPoolExecutor
+__线程池_装饰专用 = ThreadPoolExecutor(12)
+
+
+def 线程模式_改(is_VIP=False, VIP_name=None):  # 这里的参数，是给装饰器的参数
+    # region 装饰器的初始化区1
+    # endregion
+    def wrap(func):
+        # region 装饰器的初始化区3
+        # endregion
+        @wraps(func)  # 复制原始函数信息，并保留下来
+        def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
+
+            # region 执行原始函数前
+            # endregion
+
+            if is_VIP:
+                rst = threading.Thread(target=func, name=VIP_name, args=args, kwargs=kwargs)
+                rst.start()
+            else:
+                rst = __线程池_装饰专用.submit(func, *args, **kwargs)  # 执行原始函数
+
+            # region 执行原始函数后
+            # endregion
+
+            return rst
+
+        # region 装饰器的初始化区4
+        # endregion
+        return inner
+
+    # region 装饰器的初始化区2
+    # endregion
+    return wrap
+
+def 线程模式(func):
+    # region 装饰器的初始化区3
+    # endregion
+    @wraps(func)  # 复制原始函数信息，并保留下来
+    def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
+
+        # region 执行原始函数前
+        # endregion
+
+        rst = __线程池_装饰专用.submit(func, *args, **kwargs)  # 执行原始函数
+
+        # region 执行原始函数后
+        # endregion
+
+        return rst
+
+    # region 装饰器的初始化区4
+    # endregion
+    return inner
+
+# endregion 线程
+
+# region --定时任务
+try:
+    from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
+    from apscheduler.schedulers.background import BackgroundScheduler
+except: pass
+
+_scheduler = None
+_定时任务列表 = []
+
+
+def 定时任务_注册(触发器类型='interval', id=None, 首次是否执行=True, *任务args, **任务kwargs):  # 这里的参数，是给装饰器的参数
+    # region 装饰器的初始化区：（1）装饰了别人才会执行 （2）有几个@，就执行几次
+    # endregion
+
+    def wrap(func):
+        @wraps(func)  # 复制原始函数信息，并保留下来
+        def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
+
+            # region 执行原始函数前
+            注册定时任务(func, 触发器类型, args, kwargs, id, *任务args, **任务kwargs)
+            # endregion
+
+            if 首次是否执行:
+                func(*args, **kwargs)
+
+            # region 执行原始函数后
+            # endregion
+
+        return inner
+
+    return wrap
+
+
+def 定时任务_启动():  # 这里的参数，是给装饰器的参数
+    # region 装饰器的初始化区：（1）装饰了别人才会执行 （2）有几个@，就执行几次
+    # endregion
+
+    def wrap(func):
+        @wraps(func)  # 复制原始函数信息，并保留下来
+        def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
+
+            # region 执行原始函数前
+            启动定时任务()
+            # endregion
+
+            func(*args, **kwargs)  # 执行原始函数
+
+            # region 执行原始函数后
+            # endregion
+
+        return inner
+
+    return wrap
+
+
+def 注册定时任务(func, 触发器类型, args, kwargs, id, *任务args, **任务kwargs):
+    新任务 = {}
+    新任务["任务"] = func
+    新任务["触发器类型"] = 触发器类型
+    新任务["原始函数args"] = args
+    新任务["原始函数kwargs"] = kwargs
+    新任务["id"] = id
+    新任务["任务args"] = 任务args
+    新任务["任务kwargs"] = 任务kwargs
+    global _定时任务列表
+    _定时任务列表.append(新任务)
+
+
+def 启动定时任务():
+    __executors = {
+        'default': ThreadPoolExecutor(20),  # 线程池
+        'processpool': ProcessPoolExecutor(5)  # 进程池
+    }
+    __job_defaults = {
+        'coalesce': True,
+        # 当有任务中途中断，后面恢复后，有N个任务没有执行 coalesce：true ，恢复的任务会执行一次  coalesce：false，恢复后的任务会执行N次配合misfire_grace_time使用
+        'max_instances': 1,  # 同一任务的运行实例个数
+        'misfire_grace_time': 60  # 超时间隔，超过了就弃掉任务
+    }
+    global _scheduler
+    _scheduler = BackgroundScheduler(executors=__executors, job_defaults=__job_defaults,
+                                     timezone='Asia/Shanghai')
+    for i in _定时任务列表:
+        _scheduler.add_job(i["任务"], i["触发器类型"], i["原始函数args"], i["原始函数kwargs"], i["id"], *i["任务args"], **i["任务kwargs"])
+    _scheduler.start()
+
+
+@定时任务_启动()
+def 启动定时任务_阻塞主线程():
+    while True:
+        time.sleep(60 * 60 * 1)
+
+
+# endregion 定时任务
+
+# endregion
+
+
+# region 11.excel
 try:
     import xlrd
     import openpyxl
     from openpyxl.utils import get_column_letter, column_index_from_string
 except: pass
+
 
 excel类型 = {
     "xlrd": {
@@ -108,6 +298,21 @@ excel类型 = {
         "sheet": "<class 'openpyxl.worksheet.worksheet.Worksheet'>",
     }
 }
+
+
+
+def from_rows_to_excel(rows, 文件全路径="result.xlsx", sheetName=None):
+    wb = openpyxl.Workbook()
+    sheet = wb.active
+    if sheetName:
+        sheet.title = sheetName
+    for i in rows:
+        sheet.append(i)
+    # 再创建一个sheet页
+    # sheet = wb.create_sheet(title=u'第二个Sheet页')
+    rm(文件全路径)
+    mkdir(get文件所在目录(文件全路径))
+    wb.save(文件全路径)
 
 
 def get_excel_workbook(文件路径, 底层实现="xlrd"):
@@ -339,216 +544,10 @@ def _is_excel_第一行的合并单元格__xlrd(sheet, 行下标, 列下标):
     return False
 
 
-# endregion excel
+# endregion 11.excel
 
 
-# region 生成器
-def 每x行取第y行_生成器类(x, y):
-    行数 = -1 - (y - 1)
-    while True:
-        行数 += 1
-        if 行数 % x == 0:
-            yield True
-        else:
-            yield False
-
-
-def 每x行取任意行_生成器类(x, 行编号=[]):
-    if isinstance(行编号, int):
-        行编号 = [行编号]
-    行数 = -1
-    while True:
-        行数 += 1
-        余数 = 行数 % x
-        if (余数 + 1) in 行编号:
-            yield True
-        else:
-            yield False
-
-
-def 计时点_生成器类(几个点一组=3, 几个组换行=5, 几个行成块=4, 点样式1="·", 点样式2="*"):
-    每x行取第x行 = 每x行取第y行_生成器类(几个点一组, 几个点一组)
-    每y行取第y行 = 每x行取第y行_生成器类(几个点一组 * 几个组换行, 几个点一组 * 几个组换行)
-    每z行取第z行 = 每x行取第y行_生成器类(几个点一组 * 几个组换行 * 几个行成块, 几个点一组 * 几个组换行 * 几个行成块)
-    is点样式用1 = True
-    输出的点 = 点样式1
-    while True:
-        最终输出 = 输出的点
-        if next(每x行取第x行):
-            最终输出 += " "
-        if next(每y行取第y行):
-            最终输出 += "\n"
-        if next(每z行取第z行):
-            # 最终输出 += "\n"
-            is点样式用1 = not is点样式用1
-            if is点样式用1:
-                输出的点 = 点样式1
-            else:
-                输出的点 = 点样式2
-        yield 最终输出
-# endregion 生成器
-
-
-# region 装饰器
-# -- 关于初始化区，扫描到几个@就执行几次
-
-# region 线程
-from concurrent.futures import ThreadPoolExecutor
-__线程池_装饰专用 = ThreadPoolExecutor(12)
-
-
-def 线程模式_改(is_VIP=False, VIP_name=None):  # 这里的参数，是给装饰器的参数
-    # region 装饰器的初始化区1
-    # endregion
-    def wrap(func):
-        # region 装饰器的初始化区3
-        # endregion
-        @wraps(func)  # 复制原始函数信息，并保留下来
-        def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
-
-            # region 执行原始函数前
-            # endregion
-
-            if is_VIP:
-                rst = threading.Thread(target=func, name=VIP_name, args=args, kwargs=kwargs)
-                rst.start()
-            else:
-                rst = __线程池_装饰专用.submit(func, *args, **kwargs)  # 执行原始函数
-
-            # region 执行原始函数后
-            # endregion
-
-            return rst
-
-        # region 装饰器的初始化区4
-        # endregion
-        return inner
-
-    # region 装饰器的初始化区2
-    # endregion
-    return wrap
-
-def 线程模式(func):
-    # region 装饰器的初始化区3
-    # endregion
-    @wraps(func)  # 复制原始函数信息，并保留下来
-    def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
-
-        # region 执行原始函数前
-        # endregion
-
-        rst = __线程池_装饰专用.submit(func, *args, **kwargs)  # 执行原始函数
-
-        # region 执行原始函数后
-        # endregion
-
-        return rst
-
-    # region 装饰器的初始化区4
-    # endregion
-    return inner
-
-# endregion 线程
-
-# region 定时任务
-try:
-    from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
-    from apscheduler.schedulers.background import BackgroundScheduler
-except: pass
-
-_scheduler = None
-_定时任务列表 = []
-
-
-def 定时任务_注册(触发器类型='interval', id=None, 首次是否执行=True, *任务args, **任务kwargs):  # 这里的参数，是给装饰器的参数
-    # region 装饰器的初始化区：（1）装饰了别人才会执行 （2）有几个@，就执行几次
-    # endregion
-
-    def wrap(func):
-        @wraps(func)  # 复制原始函数信息，并保留下来
-        def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
-
-            # region 执行原始函数前
-            注册定时任务(func, 触发器类型, args, kwargs, id, *任务args, **任务kwargs)
-            # endregion
-
-            if 首次是否执行:
-                func(*args, **kwargs)
-
-            # region 执行原始函数后
-            # endregion
-
-        return inner
-
-    return wrap
-
-
-def 定时任务_启动():  # 这里的参数，是给装饰器的参数
-    # region 装饰器的初始化区：（1）装饰了别人才会执行 （2）有几个@，就执行几次
-    # endregion
-
-    def wrap(func):
-        @wraps(func)  # 复制原始函数信息，并保留下来
-        def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
-
-            # region 执行原始函数前
-            启动定时任务()
-            # endregion
-
-            func(*args, **kwargs)  # 执行原始函数
-
-            # region 执行原始函数后
-            # endregion
-
-        return inner
-
-    return wrap
-
-
-def 注册定时任务(func, 触发器类型, args, kwargs, id, *任务args, **任务kwargs):
-    新任务 = {}
-    新任务["任务"] = func
-    新任务["触发器类型"] = 触发器类型
-    新任务["原始函数args"] = args
-    新任务["原始函数kwargs"] = kwargs
-    新任务["id"] = id
-    新任务["任务args"] = 任务args
-    新任务["任务kwargs"] = 任务kwargs
-    global _定时任务列表
-    _定时任务列表.append(新任务)
-
-
-def 启动定时任务():
-    __executors = {
-        'default': ThreadPoolExecutor(20),  # 线程池
-        'processpool': ProcessPoolExecutor(5)  # 进程池
-    }
-    __job_defaults = {
-        'coalesce': True,
-        # 当有任务中途中断，后面恢复后，有N个任务没有执行 coalesce：true ，恢复的任务会执行一次  coalesce：false，恢复后的任务会执行N次配合misfire_grace_time使用
-        'max_instances': 1,  # 同一任务的运行实例个数
-        'misfire_grace_time': 60  # 超时间隔，超过了就弃掉任务
-    }
-    global _scheduler
-    _scheduler = BackgroundScheduler(executors=__executors, job_defaults=__job_defaults,
-                                     timezone='Asia/Shanghai')
-    for i in _定时任务列表:
-        _scheduler.add_job(i["任务"], i["触发器类型"], i["原始函数args"], i["原始函数kwargs"], i["id"], *i["任务args"], **i["任务kwargs"])
-    _scheduler.start()
-
-
-@定时任务_启动()
-def 启动定时任务_阻塞主线程():
-    while True:
-        time.sleep(60 * 60 * 1)
-
-
-# endregion 定时任务
-
-# endregion
-
-
-# region shell
+# region 10.shell
 import subprocess
 import platform
 
@@ -566,10 +565,10 @@ def shell(cmd, stdout=subprocess.PIPE, encoding="utf8", shell=True, check=True, 
         .stdout
 
 
-# endregion shell
+# endregion 10.shell
 
 
-# region 配置相关
+# region 9.配置相关
 import configparser
 
 
@@ -581,7 +580,6 @@ def _configparser_to_dict(config):
 
 
 class 配置类:
-
     @staticmethod
     def 实例化():
         return 配置类()
@@ -710,11 +708,10 @@ class 配置类:
 
 配置 = 配置类.实例化()
 
+# endregion 9.配置相关
 
-# endregion 配置相关
 
-
-# region dao
+# region 8.dao
 
 def __get_conf_vlaue(conf, key_list, default=""):
     value = default
@@ -1057,10 +1054,10 @@ def mysql(new_conf={}):
 
 # endregion --mysql
 
-# endregion dao
+# endregion 8.dao
 
 
-# region to_xxx
+# region 7.to_xxx
 import json
 import uuid
 import hashlib
@@ -1334,10 +1331,10 @@ def to_变量名(变量):
         __to_变量名__变量名集 = __to_变量名__pattren.findall(traceback.extract_stack(limit=2)[0][3])
     return __to_变量名__变量名集.pop(0)
 
-# endregion to_xxx
+# endregion 7.to_xxx
 
 
-# region fileSystem
+# region 6.fileSystem
 try:
     import pyperclip
 except: pass
@@ -1387,7 +1384,7 @@ def ls(文件全路径, 包含前缀=True, 选项=""):
 
 def mkdir(文件全路径, 选项="-p"):
     选项 = 选项.lower()
-    if not exist(文件全路径):
+    if 文件全路径 and not exist(文件全路径):
         if ("p" in 选项) or ("r" in 选项):
             os.makedirs(文件全路径)
         else:
@@ -1546,11 +1543,10 @@ def _getCurrentFilePaths(baseFilePath, ext_list="txt"):
             .forEach(lambda f: rst_filePaths.append(f))
     return rst_filePaths
 
+# endregion 6.fileSystem
 
-# endregion fileSystem
 
-
-# region 线程序号
+# region 5.线程序号
 
 class 线程序号类:
     def __init__(self, 线程间独立=True):
@@ -1617,10 +1613,10 @@ def 全局序号(字符串模板="(1)"):
     return _静态全局序号生成器.序号(字符串模板)
 
 
-# endregion 线程序号
+# endregion 5.线程序号
 
 
-# region 打点计时
+# region 4.打点计时
 
 # region --转换秒数相关
 _毫秒_秒数 = 0.001
@@ -1754,19 +1750,17 @@ class 打点计时类:
 
 _静态计时器 = 打点计时类.实例化()
 
-
 def 打点(计时点名称=None):
     _静态计时器.打点(计时点名称)
 
-
 def 计时(起始点=None, 结束点=None):
     return _静态计时器.计时(起始点, 结束点)
-
 
 def 计时_print(起始点=None, 结束点=None, is多打个点=True):
     if is多打个点:
         打点()
     print(f"耗时: {计时(起始点,结束点)}")
+
 
 # region --装饰器
 def 打点计时(func):
@@ -1782,7 +1776,7 @@ def 打点计时(func):
 
         # region 执行原始函数后
         计时器.打点()
-        print_加锁(f'''{func.__name__}: {计时器.计时()}''')
+        print(f'''{func.__name__}: {计时器.计时()}''')
         # endregion
 
         return rst
@@ -1794,6 +1788,36 @@ def 打点计时(func):
 #region --可视化打点计时
 _is可视化打点计时结束=True
 _可视化打点计时_计时器 = 打点计时类.实例化()
+
+def _每x行取第y行_生成器类(x, y):
+    行数 = -1 - (y - 1)
+    while True:
+        行数 += 1
+        if 行数 % x == 0:
+            yield True
+        else:
+            yield False
+
+def 计时点_生成器类(几个点一组=3, 几个组换行=5, 几个行成块=4, 点样式1="·", 点样式2="*"):
+    每x行取第x行 = _每x行取第y行_生成器类(几个点一组, 几个点一组)
+    每y行取第y行 = _每x行取第y行_生成器类(几个点一组 * 几个组换行, 几个点一组 * 几个组换行)
+    每z行取第z行 = _每x行取第y行_生成器类(几个点一组 * 几个组换行 * 几个行成块, 几个点一组 * 几个组换行 * 几个行成块)
+    is点样式用1 = True
+    输出的点 = 点样式1
+    while True:
+        最终输出 = 输出的点
+        if next(每x行取第x行):
+            最终输出 += " "
+        if next(每y行取第y行):
+            最终输出 += "\n"
+        if next(每z行取第z行):
+            # 最终输出 += "\n"
+            is点样式用1 = not is点样式用1
+            if is点样式用1:
+                输出的点 = 点样式1
+            else:
+                输出的点 = 点样式2
+        yield 最终输出
 
 def _main可视化打点计时(一个点几秒=10, 几个点一组=3, 几个组换行=4, 几个行成块=5, 点样式1="·", 点样式2="*"):
     global _is可视化打点计时结束
@@ -1831,11 +1855,10 @@ def end可视化打点计时():
     print(f"\n### 耗时: {_可视化打点计时_计时器.计时()}")
 #endregion --可视化打点计时
 
+# endregion 4.打点计时
 
-# endregion 打点计时
 
-
-# region 随机延时
+# region 3.随机延时
 
 # 固定延时x秒
 def _delay_x_0_s(fixed_delay_num):
@@ -1873,11 +1896,22 @@ def delay_x_s(固定延时几秒):
 def delay_y_s(随机延时0到几秒):
     _delay_0_y_s(随机延时0到几秒)
 
+# endregion 3.随机延时
 
-# endregion 随机延时
 
+# region 2.数据集合
 
-# region 数据集合
+# 将lists转换成dicts
+def from_rows_to_lines(源rows_lists, 标题行_list):
+    rows = 源rows_lists
+    col_names = 标题行_list
+    lines = []
+    for row in rows:
+        r_dict = {}
+        for i, col in enumerate(row):
+            r_dict[col_names[i]] = col
+        lines.append(r_dict)
+    return lines
 
 
 # 删除lsit中的某项
@@ -1978,11 +2012,10 @@ def setDictValue(my_dict, key, value, 分隔符='.'):
             else:
                 my_dict = my_dict[i]
 
+# endregion 2.数据集合
 
-# endregion 数据集合
 
-
-# region 流式计算
+# region 1.流式计算
 from functools import cmp_to_key
 
 
@@ -2061,4 +2094,4 @@ def stream(iteration):
     }
     return switch.get(repr(type(iteration)), default)()
 
-# endregion 流式计算
+# endregion 1.流式计算
