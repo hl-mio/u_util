@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2022-02-16
+# @Time    : 2022-05-15
+# @PreTime : 2022-02-16
 # @Author  : hlmio
 import os
 import shutil
@@ -18,42 +19,7 @@ from decimal import *
 
 # region 未分类
 
-def get_file_rows(文件全路径, txt_分隔符=",", excel_sheet下标或名称=0, encoding="utf8", txt_is去掉所有空行=True, is全部读取为字符串=True):
-    rows = []
-    if "xls" in 文件全路径 or "xlsx" in 文件全路径:
-        rows = _get_file_rows__excel(文件全路径, excel_sheet下标或名称, encoding)
-    else:
-        rows = _get_file_rows__txt(文件全路径, txt_分隔符, encoding, txt_is去掉所有空行)
-    if is全部读取为字符串:
-        new_rows = []
-        for i in rows:
-            new_rows.append(stream(i).map(lambda x:str(x)).collect())
-        rows = new_rows
-    return rows
 
-def _get_file_rows__txt(文件全路径, 分隔符=",", encoding="utf8", is去掉所有空行=True):
-    rows = []
-    with open(文件全路径, "r", encoding=encoding) as f:
-        for line in f.readlines():
-            line = line.rstrip("\n")
-            if is去掉所有空行 and not line:
-                continue
-            row = line.split(分隔符)
-            rows.append(row)
-    # 处理bom
-    bomList = ["\ufeff", "\ufffe"]
-    for bom in bomList:
-        if rows and rows[0] and rows[0][0].startswith(bom):
-            rows[0][0] = rows[0][0].split(bom, 1)[1]
-    return rows
-
-def _get_file_rows__excel(文件全路径, sheet下标或名称=0, encoding="utf8"):
-    rows = []
-    sheet = get_excel_sheet(文件全路径, sheet下标或名称)
-    for i in range(get_excel_行数(sheet)):
-        row = get_excel_行(sheet, i)
-        rows.append(row)
-    return rows
 
 
 # region flask_api
@@ -280,6 +246,60 @@ def 启动定时任务_阻塞主线程():
 # endregion
 
 
+
+# region 12.文件传输 upload
+try:
+    import paramiko
+except: pass
+# 通过ssh上传指定文件
+def upload_by_ssh(locate文件全路径, remote文件全路径, host, port, username, password):
+    try:
+        t = paramiko.Transport((host, int(port)))
+        t.connect(username=username, password=password)
+        sftp = paramiko.SFTPClient.from_transport(t)
+        try:
+            sftp.put(locate文件全路径, remote文件全路径)
+        except Exception as e:
+            sftp.mkdir(os.path.dirname(remote文件全路径))
+            sftp.put(locate文件全路径, remote文件全路径)
+    finally:
+        try:
+            t.close()
+        except: pass
+
+
+try:
+    from ftplib import FTP
+except: pass
+
+def __ftp_upload(f, local_path, remote_path):
+    fp = open(local_path, "rb")
+    buf_size = 1024
+    f.storbinary("STOR {}".format(remote_path), fp, buf_size)
+    fp.close()
+
+def __ftp_download(f, local_path, remote_path):
+    fp = open(local_path, "wb")
+    buf_size = 1024
+    f.retrbinary('RETR {}'.format(remote_path), fp.write, buf_size)
+    fp.close()
+
+
+# 将本地文件上传到ftp,并且重命名为指定文件名
+def upload_by_ftp(locate文件全路径, remote文件全路径, host, port, username, password):
+    ftp = FTP()
+    try:
+        ftp.connect(host, int(port))
+        ftp.login(username, password)
+        __ftp_upload(ftp, locate文件全路径, remote文件全路径)
+    finally:
+        try:
+            ftp.quit()
+        except: pass
+
+# endregion 12.文件传输
+
+
 # region 11.excel
 try:
     import xlrd
@@ -298,6 +318,45 @@ excel类型 = {
         "sheet": "<class 'openpyxl.worksheet.worksheet.Worksheet'>",
     }
 }
+
+
+
+def get_file_rows(文件全路径, txt_分隔符=",", excel_sheet下标或名称=0, encoding="utf8", txt_is去掉所有空行=True, is全部读取为字符串=True):
+    rows = []
+    if "xls" in 文件全路径.lower() or "xlsx" in 文件全路径.lower():
+        rows = _get_file_rows__excel(文件全路径, excel_sheet下标或名称, encoding)
+    else:
+        rows = _get_file_rows__txt(文件全路径, txt_分隔符, encoding, txt_is去掉所有空行)
+    if is全部读取为字符串:
+        new_rows = []
+        for i in rows:
+            new_rows.append(stream(i).map(lambda x:str(x)).collect())
+        rows = new_rows
+    return rows
+
+def _get_file_rows__txt(文件全路径, 分隔符=",", encoding="utf8", is去掉所有空行=True):
+    rows = []
+    with open(文件全路径, "r", encoding=encoding) as f:
+        for line in f.readlines():
+            line = line.rstrip("\n")
+            if is去掉所有空行 and not line:
+                continue
+            row = line.split(分隔符)
+            rows.append(row)
+    # 处理bom
+    bomList = ["\ufeff", "\ufffe"]
+    for bom in bomList:
+        if rows and rows[0] and rows[0][0].startswith(bom):
+            rows[0][0] = rows[0][0].split(bom, 1)[1]
+    return rows
+
+def _get_file_rows__excel(文件全路径, sheet下标或名称=0, encoding="utf8"):
+    rows = []
+    sheet = get_excel_sheet(文件全路径, sheet下标或名称)
+    for i in range(get_excel_行数(sheet)):
+        row = get_excel_行(sheet, i)
+        rows.append(row)
+    return rows
 
 
 
