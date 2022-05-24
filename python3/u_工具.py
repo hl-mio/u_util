@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2022-05-15
-# @PreTime : 2022-02-16
+# @Time    : 2022-05-24
+# @PreTime : 2022-05-15
 # @Author  : hlmio
 import os
 import shutil
@@ -1973,6 +1973,23 @@ def from_rows_to_lines(源rows_lists, 标题行_list):
     return lines
 
 
+
+def split_list_by_count(源list, count_几个元素分一组):
+    return __list_of_groups(源list, count_几个元素分一组)
+def __list_of_groups(list_info, per_list_len):
+    '''
+    :param list_info:   列表
+    :param per_list_len:  每个小列表的长度
+    :return:
+    '''
+    list_of_group = zip(*(iter(list_info),) *per_list_len)
+    end_list = [list(i) for i in list_of_group] # i is a tuple
+    count = len(list_info) % per_list_len
+    end_list.append(list_info[-count:]) if count !=0 else end_list
+    return end_list
+
+
+
 # 删除lsit中的某项
 def delListItem(数据源list, 下标列表=None, 下标从0开始=True, 元素值列表=None, 不改变原数组=True):
     if 不改变原数组:
@@ -2076,6 +2093,7 @@ def setDictValue(my_dict, key, value, 分隔符='.'):
 
 # region 1.流式计算
 from functools import cmp_to_key
+from itertools import groupby
 
 
 class ListStream:
@@ -2098,15 +2116,31 @@ class ListStream:
         self.forEach(lambda item: print(item))
         return self
 
-    def collect(self):
-        return self.list
-
     def sort(self, key=None, reverse=False):
         self.list.sort(key=key, reverse=reverse)
         return self
-    def sortBy(self, cmp, reverse=False):
+    def sort_by_cmp(self, cmp, reverse=False):
         self.list.sort(key=cmp_to_key(cmp), reverse=reverse)
         return self
+
+    def collect(self):
+        return self.list
+
+    def group_by_count(self, count):
+        # return split_list_by_count(self.list, count)
+        return [self.list[i:i+count] for i in range(0,len(self.list),count)]
+    def group(self, key=None, reverse=False):
+        self.sort(key, reverse)
+        new_list = []
+        for key, group in groupby(self.list, key):
+            new_list.append(list(group))
+        return new_list
+    # def group_by_cmp(self, cmp, reverse=False):
+    #     # self.sort_by_cmp(cmp, reverse)
+    #     new_list = []
+    #     for key, group in groupby(self.list, cmp):
+    #         new_list.append(list(group))
+    #     return new_list
 
 
 class DictStream(ListStream):
