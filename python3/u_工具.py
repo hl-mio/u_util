@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2022-05-24
-# @PreTime : 2022-05-15
+# @Time    : 2022-10-12
+# @PreTime : 2022-05-24
 # @Author  : hlmio
 import os
 import shutil
@@ -784,9 +784,12 @@ def __get_conf_vlaue(conf, key_list, default=""):
 
 
 # region --redis
+
 try:
     import redis as redis_py
+    from rediscluster import RedisCluster
 except: pass
+
 
 _redis_conf = {
     "host": "127.0.0.1",
@@ -796,7 +799,12 @@ _redis_conf = {
     "db": 0,
 
     "decode_responses": True,
-    "charset": "utf-8"
+    "charset": "utf-8",
+    "startup_nodes": []
+    # "startup_nodes": [
+    #     {"host": "127.0.0.1", "port": 7001},
+    #     {"host": "127.0.0.1", "port": 7002},
+    # ]
 }
 
 
@@ -810,12 +818,18 @@ def _get_redis_conf(new_conf={}):
 
     conf["decode_responses"] = __get_conf_vlaue(new_conf, ["decode_responses"], _redis_conf["decode_responses"])
     conf["charset"] = __get_conf_vlaue(new_conf, ["charset"], _redis_conf["charset"])
+    conf["startup_nodes"] = new_conf.get("startup_nodes", _redis_conf["startup_nodes"])
     return conf
 
 
 class Redis:
     def __init__(self, conf=_get_redis_conf()):
-        self.conn = redis_py.StrictRedis(host=conf["host"], port=conf["port"], password=conf["password"], db=conf["db"],
+        if conf["startup_nodes"]:
+            # redis集群
+            self.conn = RedisCluster(startup_nodes=conf["startup_nodes"], password=conf["password"], decode_responses=conf["decode_responses"])
+        else:
+            # redis单点
+            self.conn = redis_py.StrictRedis(host=conf["host"], port=conf["port"], password=conf["password"], db=conf["db"],
                                          decode_responses=conf["decode_responses"], charset=conf["charset"])
 
     def __del__(self):
@@ -847,11 +861,125 @@ class Redis:
         return rst
 
 
-def redis(new_conf={}):
+def init_redis(new_conf={}):
     return Redis.实例化(new_conf)
 
-
 # endregion --redis
+
+# region --mongo
+
+try:
+    import pymongo
+except: pass
+
+
+_mongo_conf = {
+    "host": "127.0.0.1",
+    "port": 27017,
+    "username": "admin",
+    "password": "admin",
+    "db": "a1",
+    "table": "a1",
+}
+
+
+def _get_mongo_conf(new_conf={}):
+    conf = {}
+    conf["host"] = new_conf.get("host", _mongo_conf["host"])
+    conf["port"] = new_conf.get("port", _mongo_conf["port"])
+    conf["username"] = __get_conf_vlaue(new_conf, ["username", "user", "name", "userName"], _mongo_conf["username"])
+    conf["password"] = __get_conf_vlaue(new_conf, ["password", "pass", "pw"], _mongo_conf["password"])
+    conf["db"] = __get_conf_vlaue(new_conf, ["db", "database"], _mongo_conf["db"])
+    conf["table"] = __get_conf_vlaue(new_conf, ["table", "tab"], _mongo_conf["table"])
+    return conf
+
+
+class Mongo:
+    def __init__(self, conf=_mongo_conf):
+        self.conn = pymongo.MongoClient(f'''mongodb://{conf["username"]}:{conf["password"]}@{conf["host"]}:{conf["port"]}/''')
+
+        self.is_ok = True
+        self.count = 0
+        self.lines = []
+        # self.db
+        # self.table
+        self.use_db(conf["db"])
+        self.use_table(conf["table"])
+
+    def __del__(self):
+        if self.conn:
+            try:
+                self.close()
+            except:
+                pass
+
+    @staticmethod
+    def 实例化(new_conf={}):
+        conf = _get_mongo_conf(new_conf)
+        return Mongo(conf)
+
+    def close(self):
+        self.conn.close()
+
+    def use_db(self, name="admin"):
+        self.db = self.conn[name]
+
+    def use_table(self, name):
+        self.table = self.db[name]
+
+    def use(self, name, type="table"):
+        if type == "db": return self.use_db(name)
+        if type == "table": return self.use_table(name)
+
+        return self.use_table(name)
+
+    def get_table(self, name):
+        return self.db[name]
+
+    def __getitem__(self,name):
+        return self.get_table(name)
+
+    def exec(self, sql: str, params=None):
+        if params:
+            self.cursor.execute(sql, params)
+        else:
+            self.cursor.execute(sql)
+        self.rows = self.cursor.fetchall()
+        self.lines = self._rows_to_lines(self.rows, self.cursor)
+        self.count = self.cursor.rowcount
+        return self
+
+    def call(self, proc_name: str, params=[]):
+        self.cursor.callproc(proc_name, params)
+        self.rows = self.cursor.fetchall()
+        self.lines = self._rows_to_lines(self.rows, self.cursor)
+        self.count = self.cursor.rowcount
+        if params:
+            select_params = ",".join([f'@_{proc_name}_{i}' for i in range(len(params))])
+            self.cursor.execute(f"select {select_params}")
+            in_out = self.cursor.fetchone()
+            for i in range(len(params)):
+                params[i] = in_out[i]
+        return self
+
+    def begin(self):
+        self.conn.begin()
+        return self
+
+    def commit(self):
+        self.conn.commit()
+        return self
+
+    def rollback(self):
+        self.conn.rollback()
+        return self
+
+
+def init_mongo(new_conf={}):
+    return Mongo.实例化(new_conf)
+
+# endregion --mongo
+
 
 # region --oracle
 # https://blog.csdn.net/u013595395/article/details/108924071
@@ -1325,14 +1453,14 @@ def from_class_to_dict(obj):
     return obj
 
 
-def to_json_str(obj, ensure_ascii=False, check_class=True):
+def to_json_str(obj, check_class=True, separators=(',',':') , ensure_ascii=False):
     if check_class:
         try:
             obj_dict = obj.__dict__
             obj = from_class_to_dict(obj)
         except:
             pass
-    return json.dumps(obj, ensure_ascii=ensure_ascii, cls=_MyEncoder)
+    return json.dumps(obj, ensure_ascii=ensure_ascii, cls=_MyEncoder, separators=separators)
 
 
 def to_json_file(obj, 文件对象, ensure_ascii=False, indent=2):
