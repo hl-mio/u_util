@@ -786,6 +786,8 @@ def __get_conf_vlaue(conf, key_list, default=""):
 # region --redis
 
 try:
+    # pip install redis
+    # pip install redis-py-cluster
     import redis as redis_py
     from rediscluster import RedisCluster
 except: pass
