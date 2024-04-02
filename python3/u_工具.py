@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2022-10-12
-# @PreTime : 2022-05-24
+# @Time    : 2024-04-02
+# @PreTime : 2022-10-12
 # @Author  : hlmio
 import os
 import shutil
@@ -13,6 +13,7 @@ import re
 import traceback
 import pathlib
 import functools
+import csv
 from functools import wraps
 from decimal import *
 
@@ -336,13 +337,21 @@ def get_file_rows(文件全路径, txt_分隔符=",", excel_sheet下标或名称
 
 def _get_file_rows__txt(文件全路径, 分隔符=",", encoding="utf8", is去掉所有空行=True):
     rows = []
-    with open(文件全路径, "r", encoding=encoding) as f:
-        for line in f.readlines():
-            line = line.rstrip("\n")
-            if is去掉所有空行 and not line:
-                continue
-            row = line.split(分隔符)
-            rows.append(row)
+    if 分隔符 == ",":
+        with open(文件全路径, newline='\n', encoding=encoding) as csv_file:
+            csv_reader = csv.reader(csv_file)
+            for row in csv_reader:
+                if is去掉所有空行 and not row:
+                    continue
+                rows.append(row)
+    else:
+        with open(文件全路径, "r", encoding=encoding) as f:
+            for line in f.readlines():
+                line = line.rstrip("\n")
+                if is去掉所有空行 and not line:
+                    continue
+                row = line.split(分隔符)
+                rows.append(row)
     # 处理bom
     bomList = ["\ufeff", "\ufffe"]
     for bom in bomList:
