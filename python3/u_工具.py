@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2024-04-02
-# @PreTime : 2022-10-12
+# @Time    : 2024-04-15
+# @PreTime : 2024-04-02
 # @Author  : hlmio
 import os
 import shutil
@@ -1262,10 +1262,9 @@ import hashlib
 import ctypes
 
 
+
 def from_hex_to_byte(str):
     return bytes.fromhex(str)
-
-
 def from_byte_to_hex(字节):
     return 字节.hex()
 
@@ -1430,7 +1429,14 @@ def getCurrentDatetime_str(format_str="%Y-%m-%d %H:%M:%S"):
     return datetime.datetime.now().strftime(format_str)
 
 
+def from_excel小数日期_to_时间字符串(日期天数小数or字符串, 格式字符串=时间字符串_模板):
+    日期天数小数 = float(日期天数小数or字符串)
+    excel_date = datetime.datetime(1899, 12, 30) + datetime.timedelta(days=日期天数小数)  # Excel日期从1900年1月1日开始，减去1是因为Excel将1900年1月1日视为第1天
+    # return to_time_str(excel_date, 格式字符串=格式字符串)
+    return excel_date.strftime(格式字符串)  # 将日期转换为字符串格式
+
 # endregion time
+
 
 def to_self(obj):
     return to_json_obj(to_json_str(obj))
