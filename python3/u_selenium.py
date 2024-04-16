@@ -116,6 +116,8 @@ class 火狐WebDriver():
         return self.driver.implicitly_wait(time_to_wait)
     def get(self, url):
         return self.driver.get(url)
+    def refresh(self):
+        return self.driver.refresh()
     #endregion
 
 
