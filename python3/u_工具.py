@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2024-04-15
-# @PreTime : 2024-04-02
+# @Time    : 2024-07-24
+# @PreTime : 2024-04-15
 # @Author  : hlmio
 import os
 import shutil
@@ -321,6 +321,50 @@ excel类型 = {
 }
 
 
+def get_file_lines(文件全路径, txt_分隔符=",", excel_sheet下标或名称=0, encoding="utf8", txt_is去掉所有空行=True, is全部读取为字符串=True):
+    rows = get_file_rows(文件全路径, txt_分隔符=txt_分隔符, excel_sheet下标或名称=excel_sheet下标或名称, encoding=encoding, txt_is去掉所有空行=txt_is去掉所有空行, is全部读取为字符串=is全部读取为字符串)
+
+    col_names = rows[0]
+    # 处理字段名缺失
+    递增数 = 0
+    for i in range(len(col_names)):
+        if not col_names[i]:
+            递增数 += 1
+            col_names[i] = f'''f{递增数}'''
+
+    # 处理字段名重复
+    def add_suffix_to_duplicates(lst):
+        count_dict = {}
+        seen = set()
+        result = []
+
+        for item in lst:
+            original_item = item
+            if item in seen:
+                count = count_dict.get(item, 0)
+                count += 1
+                new_item = f"{item}{count}"
+                while new_item in seen:
+                    count += 1
+                    new_item = f"{item}{count}"
+                count_dict[original_item] = count
+            else:
+                seen.add(item)
+                new_item = item
+
+            result.append(new_item)
+            seen.add(new_item)
+
+        return result
+    col_names = add_suffix_to_duplicates(col_names)
+
+    lines = []
+    for row in rows[1:]:
+        r_dict = {}
+        for i, col in enumerate(row):
+            r_dict[col_names[i]] = col
+        lines.append(r_dict)
+    return lines
 
 def get_file_rows(文件全路径, txt_分隔符=",", excel_sheet下标或名称=0, encoding="utf8", txt_is去掉所有空行=True, is全部读取为字符串=True):
     rows = []
@@ -2261,23 +2305,29 @@ class ListStream:
         self.forEach(lambda item: print(item))
         return self
 
-    def sort(self, key=None, reverse=False):
-        self.list.sort(key=key, reverse=reverse)
-        return self
-    def sort_by_cmp(self, cmp, reverse=False):
-        self.list.sort(key=cmp_to_key(cmp), reverse=reverse)
-        return self
-
     def collect(self):
         return self.list
+
+    def sort(self, key=None, reverse=False, 比较函数_返回单个值用于比较=None, 比较函数_输入两个值返回比较结果=None):
+        if 比较函数_返回单个值用于比较:
+            key = 比较函数_返回单个值用于比较
+        elif 比较函数_输入两个值返回比较结果:
+            key = cmp_to_key(比较函数_输入两个值返回比较结果)
+
+        self.list.sort(key=key, reverse=reverse)
+        return self
 
     def group_by_count(self, count):
         # return split_list_by_count(self.list, count)
         return [self.list[i:i+count] for i in range(0,len(self.list),count)]
-    def group(self, key=None, reverse=False):
-        self.sort(key, reverse)
+    def group(self, group_key=None, sort_key=None):
+        key1 = group_key
+        if sort_key:
+            key1 = sort_key
+        self.sort(key1)
+
         new_list = []
-        for key, group in groupby(self.list, key):
+        for field, group in groupby(self.list, group_key):
             new_list.append(list(group))
         return new_list
     # def group_by_cmp(self, cmp, reverse=False):
