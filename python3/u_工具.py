@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2024-07-24
-# @PreTime : 2024-04-15
+# @Time    : 2024-11-28
+# @PreTime : 2024-07-24
 # @Author  : hlmio
 import os
 import shutil
@@ -366,10 +366,12 @@ def get_file_lines(文件全路径, txt_分隔符=",", excel_sheet下标或名�
         lines.append(r_dict)
     return lines
 
-def get_file_rows(文件全路径, txt_分隔符=",", excel_sheet下标或名称=0, encoding="utf8", txt_is去掉所有空行=True, is全部读取为字符串=True):
+def get_file_rows(文件全路径, txt_分隔符=",", excel_sheet下标或名称=0, encoding="utf8", txt_is去掉所有空行=True, is全部读取为字符串=True, txt_is_csv=None):
     rows = []
     if "xls" in 文件全路径.lower() or "xlsx" in 文件全路径.lower():
         rows = _get_file_rows__excel(文件全路径, excel_sheet下标或名称, encoding)
+    elif ("csv" in 文件全路径.lower() or txt_is_csv) and not (txt_is_csv is not None and not txt_is_csv):
+        rows = _get_file_rows__csv(文件全路径, txt_分隔符, encoding, txt_is去掉所有空行)
     else:
         rows = _get_file_rows__txt(文件全路径, txt_分隔符, encoding, txt_is去掉所有空行)
     if is全部读取为字符串:
@@ -379,23 +381,33 @@ def get_file_rows(文件全路径, txt_分隔符=",", excel_sheet下标或名称
         rows = new_rows
     return rows
 
-def _get_file_rows__txt(文件全路径, 分隔符=",", encoding="utf8", is去掉所有空行=True):
+def _get_file_rows__csv(文件全路径, 分隔符=",", encoding="utf8", is去掉所有空行=True):
     rows = []
+    print("使用csv文件读取")
+    with open(文件全路径, encoding=encoding) as csv_file:
+        csv_reader = csv.reader(csv_file, delimiter=分隔符)
+        for row in csv_reader:
+            if is去掉所有空行 and not row:
+                continue
+            rows.append(row)
+    # 处理bom
+    bomList = ["\ufeff", "\ufffe"]
+    for bom in bomList:
+        if rows and rows[0] and rows[0][0].startswith(bom):
+            rows[0][0] = rows[0][0].split(bom, 1)[1]
+    return rows
+
+def _get_file_rows__txt(文件全路径, 分隔符=",", encoding="utf8", is去掉所有空行=True):
     if 分隔符 == ",":
-        with open(文件全路径, newline='\n', encoding=encoding) as csv_file:
-            csv_reader = csv.reader(csv_file)
-            for row in csv_reader:
-                if is去掉所有空行 and not row:
-                    continue
-                rows.append(row)
-    else:
-        with open(文件全路径, "r", encoding=encoding) as f:
-            for line in f.readlines():
-                line = line.rstrip("\n")
-                if is去掉所有空行 and not line:
-                    continue
-                row = line.split(分隔符)
-                rows.append(row)
+        return _get_file_rows__csv(文件全路径, 分隔符, encoding, is去掉所有空行)
+    rows = []
+    with open(文件全路径, "r", encoding=encoding) as f:
+        for line in f.readlines():
+            line = line.rstrip("\n")
+            if is去掉所有空行 and not line:
+                continue
+            row = line.split(分隔符)
+            rows.append(row)
     # 处理bom
     bomList = ["\ufeff", "\ufffe"]
     for bom in bomList:
