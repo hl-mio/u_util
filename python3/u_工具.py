@@ -366,14 +366,14 @@ def get_file_lines(文件全路径, txt_分隔符=",", excel_sheet下标或名�
         lines.append(r_dict)
     return lines
 
-def get_file_rows(文件全路径, txt_分隔符=",", excel_sheet下标或名称=0, encoding="utf8", txt_is去掉所有空行=True, is全部读取为字符串=True, txt_is_csv=None):
+def get_file_rows(文件全路径, txt_分隔符=",", excel_sheet下标或名称=0, encoding="utf8", txt_is去掉所有空行=True, is全部读取为字符串=True, newline=None, txt_is_csv=None):
     rows = []
     if "xls" in 文件全路径.lower() or "xlsx" in 文件全路径.lower():
         rows = _get_file_rows__excel(文件全路径, excel_sheet下标或名称, encoding)
     elif ("csv" in 文件全路径.lower() or txt_is_csv) and not (txt_is_csv is not None and not txt_is_csv):
-        rows = _get_file_rows__csv(文件全路径, txt_分隔符, encoding, txt_is去掉所有空行)
+        rows = _get_file_rows__csv(文件全路径, txt_分隔符, encoding, txt_is去掉所有空行, newline)
     else:
-        rows = _get_file_rows__txt(文件全路径, txt_分隔符, encoding, txt_is去掉所有空行)
+        rows = _get_file_rows__txt(文件全路径, txt_分隔符, encoding, txt_is去掉所有空行, newline)
     if is全部读取为字符串:
         new_rows = []
         for i in rows:
@@ -381,10 +381,9 @@ def get_file_rows(文件全路径, txt_分隔符=",", excel_sheet下标或名称
         rows = new_rows
     return rows
 
-def _get_file_rows__csv(文件全路径, 分隔符=",", encoding="utf8", is去掉所有空行=True):
+def _get_file_rows__csv(文件全路径, 分隔符=",", encoding="utf8", is去掉所有空行=True, newline=None):
     rows = []
-    print("使用csv文件读取")
-    with open(文件全路径, encoding=encoding) as csv_file:
+    with open(文件全路径, encoding=encoding, newline=newline) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=分隔符)
         for row in csv_reader:
             if is去掉所有空行 and not row:
@@ -397,11 +396,11 @@ def _get_file_rows__csv(文件全路径, 分隔符=",", encoding="utf8", is去�
             rows[0][0] = rows[0][0].split(bom, 1)[1]
     return rows
 
-def _get_file_rows__txt(文件全路径, 分隔符=",", encoding="utf8", is去掉所有空行=True):
+def _get_file_rows__txt(文件全路径, 分隔符=",", encoding="utf8", is去掉所有空行=True, newline=None):
     if 分隔符 == ",":
         return _get_file_rows__csv(文件全路径, 分隔符, encoding, is去掉所有空行)
     rows = []
-    with open(文件全路径, "r", encoding=encoding) as f:
+    with open(文件全路径, "r", encoding=encoding, newline=newline) as f:
         for line in f.readlines():
             line = line.rstrip("\n")
             if is去掉所有空行 and not line:
