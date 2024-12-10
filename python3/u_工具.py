@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2024-11-28
-# @PreTime : 2024-07-24
+# @Time    : 2024-12-10
+# @PreTime : 2024-11-28
 # @Author  : hlmio
 import os
 import shutil
@@ -304,6 +304,8 @@ def upload_by_ftp(locate文件全路径, remote文件全路径, host, port, user
 # region 11.excel
 try:
     import xlrd
+except: pass
+try:
     import openpyxl
     from openpyxl.utils import get_column_letter, column_index_from_string
 except: pass
@@ -1085,6 +1087,7 @@ class Oracle:
         self.count = 0
         self.rows = []
         self.lines = []
+        self.rows_with_title = []
 
     def __del__(self):
         self.close()
@@ -1103,13 +1106,21 @@ class Oracle:
 
         if cursor:
             cursor = self.cursor
+            self.count = cursor.rowcount
             self.rows = cursor.fetchall()
             self.lines = self._rows_to_lines(self.rows, cursor)
-            self.count = cursor.rowcount
+            try:
+                col_names = [c[0] for c in cursor.description]
+                self.rows_with_title.append(col_names)
+                for i in self.rows:
+                    self.rows_with_title.append(i)
+            except:
+                self.rows_with_title = []
         else:
-            self.rows = ()
-            self.lines = {}
             self.count = 0
+            self.rows = []
+            self.lines = []
+            self.rows_with_title = []
         return self
 
     def call(self, proc_name: str, params=[]):
@@ -1122,14 +1133,21 @@ class Oracle:
 
         if cur_index != -1 and in_out[cur_index]:
             cursor = in_out[cur_index]
+            self.count = cursor.rowcount
             self.rows = cursor.fetchall()
             self.lines = self._rows_to_lines(self.rows, cursor)
-            self.count = cursor.rowcount
+            try:
+                col_names = [c[0] for c in cursor.description]
+                self.rows_with_title.append(col_names)
+                for i in self.rows:
+                    self.rows_with_title.append(i)
+            except:
+                self.rows_with_title = []
         else:
-            self.rows = ()
-            self.lines = {}
             self.count = 0
-
+            self.rows = []
+            self.lines = []
+            self.rows_with_title = []
         return self
 
     def callfunc(self, proc_name: str, params=[], 返回值类型=None):
@@ -1147,12 +1165,18 @@ class Oracle:
             self.rows = cursor.fetchall()
             self.lines = self._rows_to_lines(self.rows, cursor)
             self.count = cursor.rowcount
+            try:
+                col_names = [c[0] for c in cursor.description]
+                self.rows_with_title.append(col_names)
+                for i in self.rows:
+                    self.rows_with_title.append(i)
+            except:
+                self.rows_with_title = []
         else:
-            self.rows = ()
-            self.lines = {}
             self.count = 0
-
-
+            self.rows = []
+            self.lines = []
+            self.rows_with_title = []
         return rst;
 
 
@@ -1180,16 +1204,16 @@ class Oracle:
             except: pass
 
     def _rows_to_lines(self, rows, cursor):
+        lines = []
         try:
             col_names = [c[0] for c in cursor.description]
+            for row in rows:
+                r_dict = {}
+                for i, col in enumerate(row):
+                    r_dict[col_names[i]] = col
+                lines.append(r_dict)
         except:
             pass
-        lines = []
-        for row in rows:
-            r_dict = {}
-            for i, col in enumerate(row):
-                r_dict[col_names[i]] = col
-            lines.append(r_dict)
         return lines
 
 
