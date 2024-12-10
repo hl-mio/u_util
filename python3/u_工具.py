@@ -1109,13 +1109,14 @@ class Oracle:
             self.count = cursor.rowcount
             self.rows = cursor.fetchall()
             self.lines = self._rows_to_lines(self.rows, cursor)
+            self.rows_with_title = []
             try:
                 col_names = [c[0] for c in cursor.description]
                 self.rows_with_title.append(col_names)
                 for i in self.rows:
                     self.rows_with_title.append(i)
             except:
-                self.rows_with_title = []
+                pass
         else:
             self.count = 0
             self.rows = []
@@ -1136,13 +1137,14 @@ class Oracle:
             self.count = cursor.rowcount
             self.rows = cursor.fetchall()
             self.lines = self._rows_to_lines(self.rows, cursor)
+            self.rows_with_title = []
             try:
                 col_names = [c[0] for c in cursor.description]
                 self.rows_with_title.append(col_names)
                 for i in self.rows:
                     self.rows_with_title.append(i)
             except:
-                self.rows_with_title = []
+                pass
         else:
             self.count = 0
             self.rows = []
@@ -1165,13 +1167,14 @@ class Oracle:
             self.rows = cursor.fetchall()
             self.lines = self._rows_to_lines(self.rows, cursor)
             self.count = cursor.rowcount
+            self.rows_with_title = []
             try:
                 col_names = [c[0] for c in cursor.description]
                 self.rows_with_title.append(col_names)
                 for i in self.rows:
                     self.rows_with_title.append(i)
             except:
-                self.rows_with_title = []
+                pass
         else:
             self.count = 0
             self.rows = []
