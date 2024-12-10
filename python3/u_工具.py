@@ -392,7 +392,7 @@ def _get_file_rows__csv(文件全路径, 分隔符=",", encoding="utf8", is去�
                 continue
             rows.append(row)
     # 处理bom
-    bomList = ["\ufeff", "\ufffe"]
+    bomList = [r"\ufeff", r"\ufffe"]
     for bom in bomList:
         if rows and rows[0] and rows[0][0].startswith(bom):
             rows[0][0] = rows[0][0].split(bom, 1)[1]
@@ -410,7 +410,7 @@ def _get_file_rows__txt(文件全路径, 分隔符=",", encoding="utf8", is去�
             row = line.split(分隔符)
             rows.append(row)
     # 处理bom
-    bomList = ["\ufeff", "\ufffe"]
+    bomList = [r"\ufeff", r"\ufffe"]
     for bom in bomList:
         if rows and rows[0] and rows[0][0].startswith(bom):
             rows[0][0] = rows[0][0].split(bom, 1)[1]
@@ -1870,7 +1870,7 @@ class 线程序号类:
         # region 输出序号值
         if repr(type(字符串模板)) == "<class 'int'>": return 序号值
         字符串模板 = str(字符串模板)
-        数字match = re.match("([^0-9]*)([0-9]*)([\s\S]*)", 字符串模板)
+        数字match = re.match(r"([^0-9]*)([0-9]*)([\s\S]*)", 字符串模板)
         模板序号值 = f"{数字match.group(1)}{序号值}{数字match.group(3)}"
         return 模板序号值
         # endregion
