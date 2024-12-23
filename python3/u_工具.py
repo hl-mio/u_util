@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2024-12-10
-# @PreTime : 2024-11-28
+# @Time    : 2024-12-23
+# @PreTime : 2024-12-10
 # @Author  : hlmio
 import os
 import shutil
@@ -1342,6 +1342,94 @@ import json
 import uuid
 import hashlib
 import ctypes
+
+
+
+try:
+    import imgkit
+    from HTMLTable import HTMLTable
+except Exception as ex:
+    _ = ex
+# imgkit==1.2.3
+# html-table==1.0
+#
+# imgkit底层调用wkhtmltopdf
+# 需配置系统环境变量
+# 或按以下例子主动写入配置
+# config = imgkit.config(wkhtmltoimage='D:/a_soft/wkhtmltopdf/bin/wkhtmltoimage')
+# imgkit.from_string(html_string, output_file, config=config)
+def from_rows_to_img(写入的文件全路径, 数据行_rows, 表头行_row=None, title="", is删除写入的文件=False):
+    table = HTMLTable(caption=title)
+
+    if 表头行_row:
+        # 表头行
+        header_row = tuple(表头行_row)
+        table.append_header_rows((
+            header_row,
+        ))
+
+    table.append_data_rows(数据行_rows)
+
+    # 标题样式
+    table.caption.set_style({
+        'font-size': '15px',
+    })
+    # 表格样式，即<table>标签样式
+    table.set_style({
+        'border-collapse': 'collapse',
+        'word-break': 'keep-all',
+        'white-space': 'nowrap',
+        'font-size': '14px',
+    })
+    # 统一设置所有单元格样式，<td>或<th>
+    table.set_cell_style({
+        'width': "250px",
+        'border-color': '#000',
+        'border-width': '1px',
+        'border-style': 'solid',
+        'padding': '5px',
+    })
+    # 表头样式
+    table.set_header_row_style({
+        'color': '#fff',
+        'background-color': '#48a6fb',
+        'font-size': '18px',
+    })
+
+    # 覆盖表头单元格字体样式
+    table.set_header_cell_style({
+        'padding': '15px',
+    })
+    # 调小次表头字体大小
+    # table[1].set_cell_style({
+    #     'padding': '8px',
+    #     'font-size': '15px',
+    # })
+    # 遍历数据行，如果增长量为负，标红背景颜色
+    # for row in table.iter_data_rows():
+    #     if row[2].value < 0:
+    #         row.set_style({
+    #             'background-color': '#ffdddd',
+    #         })
+    body = table.to_html()
+    # html的charset='UTF-8'必须加上，否则中午会乱码
+    html = "<!DOCTYPE html><html><head><meta charset='UTF-8'></head><body>{0}</body></html>".format(body)
+
+    # 生成图片
+    options = {
+        "enable-local-file-access": None, # html携带图片有访问权限设置
+        "width": 1355,
+        "zoom": 2.1  # 越高像素越高
+    }
+    # 生成图片
+    rm(写入的文件全路径)
+    mkdir(get文件所在目录(写入的文件全路径))
+    imgkit.from_string(html, 写入的文件全路径, options=options)
+    with open(写入的文件全路径, 'rb') as f:
+        img = f.read()
+    if is删除写入的文件:
+        rm(写入的文件全路径)
+    return img
 
 
 
