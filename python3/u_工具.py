@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2024-12-23
-# @PreTime : 2024-12-10
+# @Time    : 2025-03-11
+# @PreTime : 2024-12-23
 # @Author  : hlmio
 import os
 import shutil
@@ -1013,15 +1013,15 @@ class Mongo:
         else:
             self.cursor.execute(sql)
         self.rows = self.cursor.fetchall()
-        self.lines = self._rows_to_lines(self.rows, self.cursor)
         self.count = self.cursor.rowcount
+        self.lines = self._rows_to_lines(self.rows, self.cursor)
         return self
 
     def call(self, proc_name: str, params=[]):
         self.cursor.callproc(proc_name, params)
         self.rows = self.cursor.fetchall()
-        self.lines = self._rows_to_lines(self.rows, self.cursor)
         self.count = self.cursor.rowcount
+        self.lines = self._rows_to_lines(self.rows, self.cursor)
         if params:
             select_params = ",".join([f'@_{proc_name}_{i}' for i in range(len(params))])
             self.cursor.execute(f"select {select_params}")
@@ -1106,8 +1106,8 @@ class Oracle:
 
         if cursor:
             cursor = self.cursor
-            self.count = cursor.rowcount
             self.rows = cursor.fetchall()
+            self.count = cursor.rowcount
             self.lines = self._rows_to_lines(self.rows, cursor)
             self.rows_with_title = []
             try:
@@ -1134,8 +1134,8 @@ class Oracle:
 
         if cur_index != -1 and in_out[cur_index]:
             cursor = in_out[cur_index]
-            self.count = cursor.rowcount
             self.rows = cursor.fetchall()
+            self.count = cursor.rowcount
             self.lines = self._rows_to_lines(self.rows, cursor)
             self.rows_with_title = []
             try:
@@ -1165,8 +1165,8 @@ class Oracle:
         if cur_index != -1 and params[cur_index]:
             cursor = params[cur_index].getvalue()
             self.rows = cursor.fetchall()
-            self.lines = self._rows_to_lines(self.rows, cursor)
             self.count = cursor.rowcount
+            self.lines = self._rows_to_lines(self.rows, cursor)
             self.rows_with_title = []
             try:
                 col_names = [c[0] for c in cursor.description]
@@ -1284,15 +1284,15 @@ class Mysql:
         else:
             self.cursor.execute(sql)
         self.rows = self.cursor.fetchall()
-        self.lines = self._rows_to_lines(self.rows, self.cursor)
         self.count = self.cursor.rowcount
+        self.lines = self._rows_to_lines(self.rows, self.cursor)
         return self
 
     def call(self, proc_name: str, params=[]):
         self.cursor.callproc(proc_name, params)
         self.rows = self.cursor.fetchall()
-        self.lines = self._rows_to_lines(self.rows, self.cursor)
         self.count = self.cursor.rowcount
+        self.lines = self._rows_to_lines(self.rows, self.cursor)
         if params:
             select_params = ",".join([f'@_{proc_name}_{i}' for i in range(len(params))])
             self.cursor.execute(f"select {select_params}")
