@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2025-03-11
-# @PreTime : 2024-12-23
+# @Time    : 2025-04-09
+# @PreTime : 2025-03-11
 # @Author  : hlmio
 import os
 import shutil
@@ -51,12 +51,14 @@ def print_加锁(*args, **kwargs):
         print(*args, **kwargs)
 
 
-def change_locals(frame, 修改表={}):
-    frame.f_locals.update(修改表)
-    ctypes.pythonapi.PyFrame_LocalsToFast(
-        ctypes.py_object(frame),
-        ctypes.c_int(0)
-    )
+
+# import ctypes
+# def change_locals(frame, 修改表={}):
+#     frame.f_locals.update(修改表)
+#     ctypes.pythonapi.PyFrame_LocalsToFast(
+#         ctypes.py_object(frame),
+#         ctypes.c_int(0)
+#     )
 
 
 # endregion 未分类
@@ -1341,7 +1343,6 @@ def mysql(new_conf={}):
 import json
 import uuid
 import hashlib
-import ctypes
 
 
 
