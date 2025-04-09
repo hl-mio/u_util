@@ -155,7 +155,8 @@ def 线程模式(func):
 try:
     from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
     from apscheduler.schedulers.background import BackgroundScheduler
-except: pass
+except:
+    print("pip install APScheduler")
 
 _scheduler = None
 _定时任务列表 = []
@@ -253,7 +254,8 @@ def 启动定时任务_阻塞主线程():
 # region 12.文件传输 upload
 try:
     import paramiko
-except: pass
+except:
+    print("pip install paramiko")
 # 通过ssh上传指定文件
 def upload_by_ssh(locate文件全路径, remote文件全路径, host, port, username, password):
     try:
@@ -271,10 +273,7 @@ def upload_by_ssh(locate文件全路径, remote文件全路径, host, port, user
         except: pass
 
 
-try:
-    from ftplib import FTP
-except: pass
-
+from ftplib import FTP
 def __ftp_upload(f, local_path, remote_path):
     fp = open(local_path, "rb")
     buf_size = 1024
@@ -306,11 +305,13 @@ def upload_by_ftp(locate文件全路径, remote文件全路径, host, port, user
 # region 11.excel
 try:
     import xlrd
-except: pass
+except:
+    print("pip install xlrd==1.2.0")
 try:
     import openpyxl
     from openpyxl.utils import get_column_letter, column_index_from_string
-except: pass
+except:
+    print("pip install openpyxl")
 
 
 excel类型 = {
@@ -854,12 +855,14 @@ def __get_conf_vlaue(conf, key_list, default=""):
 # region --redis
 
 try:
-    # pip install redis
-    # pip install redis-py-cluster
     import redis as redis_py
-    from rediscluster import RedisCluster
-except: pass
+except:
+    print("pip install redis")
 
+try:
+    from rediscluster import RedisCluster
+except:
+    print("pip install redis-py-cluster")
 
 _redis_conf = {
     "host": "127.0.0.1",
@@ -1055,7 +1058,8 @@ def init_mongo(new_conf={}):
 # https://blog.csdn.net/u013595395/article/details/108924071
 try:
     import cx_Oracle
-except: pass
+except:
+    print("pip install cx-Oracle==8.3.0")
 
 # os.environ['NLS_LANG'] = 'SIMPLIFIED CHINESE_CHINA.UTF8'
 # select userenv('language') from dual;
@@ -1231,7 +1235,8 @@ def oracle(new_conf={}):
 # region --mysql
 try:
     import pymysql
-except: pass
+except:
+    print("pip install PyMySQL")
 
 _mysql_conf = {
     "host": "106.13.231.168",
@@ -1350,7 +1355,8 @@ try:
     import imgkit
     from HTMLTable import HTMLTable
 except Exception as ex:
-    _ = ex
+    print("pip install imgkit==1.2.3")
+    print("pip install html-table==1.0")
 # imgkit==1.2.3
 # html-table==1.0
 #
