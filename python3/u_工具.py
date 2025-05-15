@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2025-04-09
-# @PreTime : 2025-03-11
+# @Time    : 2025-05-15
+# @PreTime : 2025-04-09
 # @Author  : hlmio
 import os
 import shutil
@@ -428,16 +428,26 @@ def _get_file_rows__excel(文件全路径, sheet下标或名称=0, encoding="utf
     return rows
 
 
-
 def from_rows_to_excel(rows, 文件全路径="result.xlsx", sheetName=None):
     wb = openpyxl.Workbook()
     sheet = wb.active
     if sheetName:
         sheet.title = sheetName
-    for i in rows:
+
+    one_sheet_rows = rows
+    groups = []
+    单sheet数据上限 = 1000000
+    if len(rows) > 单sheet数据上限:
+        groups = split_list_by_count(rows, 单sheet数据上限)
+        one_sheet_rows = groups[0]
+
+    for i in one_sheet_rows:
         sheet.append(i)
-    # 再创建一个sheet页
-    # sheet = wb.create_sheet(title=u'第二个Sheet页')
+    if len(groups) > 1:
+        for group in groups[1:]:
+            sheet = wb.create_sheet()
+            for i in group:
+                sheet.append(i)
     rm(文件全路径)
     mkdir(get文件所在目录(文件全路径))
     wb.save(文件全路径)
