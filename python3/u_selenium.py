@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2024-10-25
-# @PreTime : 2024-04-15
+# @Time    : 2025-05-30
+# @PreTime : 2024-10-25
 # @Author  : hlmio
 import selenium
 from selenium.webdriver import ActionChains
@@ -126,6 +126,12 @@ class 火狐WebDriver(webdriver.Firefox):
         element = self.find_element_by_xpath(xpath_str)
         return self.左键单击(element, hover多少秒才单击=hover多少秒才单击)
 
+    def wait页面完全加载(self, 等待多少秒=60*5):
+        # 等待页面完全加载
+        driver = WebDriverWait(self, 等待多少秒).until(
+            lambda d: d.execute_script("return document.readyState") == "complete"
+        )
+        return driver
     def wait元素存在(self, css_str, 等待多少秒=15):
         # 等待元素加载出来，最长等待10秒
         element = WebDriverWait(self, 等待多少秒).until(
@@ -143,68 +149,12 @@ class 火狐WebDriver(webdriver.Firefox):
             EC.element_to_be_clickable((By.CSS_SELECTOR, css_str))
         )
         return element
-
-class 火狐WebDriver_20240415():
-    driver = None #type: webdriver.Firefox
-
-    def __init__(self, profile):
-        self.driver = webdriver.Firefox(firefox_profile=profile)
-
-    def __del__(self):
-        try:
-            self.driver.quit()
-        except: pass
-
-    def set隐式等待时间(self, 等待时间_秒=15):
-        self.driver.implicitly_wait(等待时间_秒)  # 查找元素时，元素若在加载，最多等待这个时间
-    def set分辨率(self,x=1280,y=720,是否全屏=False):
-        if 是否全屏:
-            self.driver.最大化或最小化浏览器(True)
-            return
-        self.driver.set_window_size(x,y)
-    def 最大化或最小化浏览器(self, 是否最大化=True):
-        if 是否最大化:
-            self.driver.maximize_window()
-        else:
-            self.driver.minimize_window()
-    def 切换到第几个窗口_从1开始(self, number, 后等待几秒=1):
-        all_hand = self.driver.window_handles
-        self.driver.switch_to.window(all_hand[int(number)-1])
-        if 后等待几秒:
-            delay_x_s(1)
-
-    def 鼠标移动到指定位置(self, element: WebElement, x=None, y=None, hover多少秒=None):
-        if x and y:
-            ActionChains(self.driver).move_by_offset(x, y).perform()
-        else:
-            ActionChains(self.driver).move_to_element(element).perform()
-        if hover多少秒:
-            delay_x_s(hover多少秒)
-    def 左键单击(self, element: WebElement, 模拟鼠标点击=True, x=None, y=None, hover多少秒才单击=1.2):
-        if 模拟鼠标点击:
-            鼠标移动到指定位置(self.driver, element, x, y, hover多少秒才单击)
-            ActionChains(self.driver).click().perform()
-        else:
-            element.click()
-    def 左键单击_by_css(self, css_str, hover多少秒才单击=1.2):
-        element = self.driver.find_element_by_css_selector(css_str)
-        return self.driver.左键单击(element, hover多少秒才单击=hover多少秒才单击)
-    def 左键单击_by_xpath(self, xpath_str, hover多少秒才单击=1.2):
-        element = self.driver.find_element_by_xpath(xpath_str)
-        return self.driver.左键单击(element, hover多少秒才单击=hover多少秒才单击)
-
-    #region 为了兼容
-    def find_element_by_css_selector(self, css_str):
-        return self.driver.find_element_by_css_selector(css_str)
-    def find_element_by_xpath(self, xpath_str):
-        return self.driver.find_element_by_xpath(xpath_str)
-    def implicitly_wait(self, time_to_wait):
-        return self.driver.implicitly_wait(time_to_wait)
-    def get(self, url):
-        return self.driver.get(url)
-    def refresh(self):
-        return self.driver.refresh()
-    #endregion
+    def wait元素包含特定文本(self, css_str, 等待多少秒=15):
+        # 等待元素加载出来，最长等待10秒
+        element = WebDriverWait(self, 等待多少秒).until(
+            EC.text_to_be_present_in_element((By.CSS_SELECTOR, css_str))
+        )
+        return element
 
 
 # 1
