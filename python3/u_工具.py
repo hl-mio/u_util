@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2025-05-15
-# @PreTime : 2025-04-09
+# @Time    : 2025-12-11
+# @PreTime : 2025-05-15
 # @Author  : hlmio
 import os
 import shutil
@@ -1253,7 +1253,7 @@ _mysql_conf = {
     "port": 3306,
     "user": "root",
     "password": "ans573KUR",
-    "db": "test",
+    "db": "mysql",
     "charset": "utf8"
 }
 
@@ -1284,6 +1284,11 @@ class Mysql:
         self.conn.autocommit(True)
 
     def __del__(self):
+        if self.cursor:
+            try:
+                self.cursor.close()
+            except:
+                pass
         if self.conn:
             try:
                 self.conn.close()
@@ -1347,6 +1352,121 @@ class Mysql:
 
 def mysql(new_conf={}):
     return Mysql.实例化(new_conf)
+
+
+# endregion --mysql
+
+# region --postgresql
+try:
+    import psycopg2
+except:
+    print("pip install psycopg2-binary")
+
+_pg_conf = {
+    "host": "106.13.231.168",
+    "port": 5432,
+    "user": "root",
+    "password": "ans573KUR",
+    "db": "postgres",
+    "charset": "utf8"
+}
+
+
+def _get_pg_conf(new_conf={}):
+    conf = {}
+    conf["host"] = new_conf.get("host", _mysql_conf["host"])
+    conf["port"] = new_conf.get("port", _mysql_conf["port"])
+    conf["user"] = new_conf.get("user", _mysql_conf["user"])
+    conf["password"] = new_conf.get("password", _mysql_conf["password"])
+    conf["db"] = new_conf.get("db", _mysql_conf["db"])
+    conf["charset"] = new_conf.get("charset", _mysql_conf["charset"])
+    return conf
+
+
+class Pgsql:
+    def __init__(self, conf=_pg_conf):
+        self.conn = psycopg2.connect(host=conf["host"], port=conf["port"], user=conf["user"], password=conf["password"],
+                                     database=conf["db"])
+        self.cursor = self.conn.cursor()
+
+        self.count = 0
+        self.rows = []
+        self.lines = []
+        self.rows_with_title = []
+
+        # self.conn.autocommit(True)
+
+    def __del__(self):
+        if self.cursor:
+            try:
+                self.cursor.close()
+            except:
+                pass
+        if self.conn:
+            try:
+                self.conn.close()
+            except:
+                pass
+
+    @staticmethod
+    def 实例化(new_conf={}):
+        conf = _get_pg_conf(new_conf)
+        return Pgsql(conf)
+
+    def exec(self, sql: str, params=None):
+        if params:
+            self.cursor.execute(sql, params)
+        else:
+            self.cursor.execute(sql)
+        self.rows = self.cursor.fetchall()
+        self.count = self.cursor.rowcount
+        self.lines = self._rows_to_lines(self.rows, self.cursor)
+        self.rows_with_title = []
+        try:
+            col_names = [c[0] for c in self.cursor.description]
+            self.rows_with_title.append(col_names)
+            for i in self.rows:
+                self.rows_with_title.append(i)
+        except:
+            pass
+        return self
+
+    def call(self, proc_name: str, params=[]):
+        self.cursor.callproc(proc_name, params)
+        self.rows = self.cursor.fetchall()
+        self.count = self.cursor.rowcount
+        self.lines = self._rows_to_lines(self.rows, self.cursor)
+        return self
+
+    def begin(self):
+        self.conn.begin()
+        return self
+
+    def commit(self):
+        self.conn.commit()
+        return self
+
+    def rollback(self):
+        self.conn.rollback()
+        return self
+
+    def _rows_to_lines(self, rows, cursor):
+        try:
+            # col_names = stream(self.cursor.description).map(lambda c: c[0]).collect()
+            col_names = [c[0] for c in cursor.description]
+        except:
+            pass
+        lines = []
+        for row in rows:
+            r_dict = {}
+            for i, col in enumerate(row):
+                r_dict[col_names[i]] = col
+            lines.append(r_dict)
+        return lines
+
+
+def pgsql(new_conf={}):
+    return Pgsql.实例化(new_conf)
 
 
 # endregion --mysql
