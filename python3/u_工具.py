@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2025-12-11
-# @PreTime : 2025-05-15
+# @Time    : 2025-12-12
+# @PreTime : 2025-12-11
 # @Author  : hlmio
 import os
 import shutil
@@ -305,6 +305,7 @@ def upload_by_ftp(locate文件全路径, remote文件全路径, host, port, user
 # region 11.excel
 try:
     import xlrd
+    from xlrd import xldate_as_datetime, xldate_as_tuple
 except:
     print("pip install xlrd==1.2.0")
 try:
@@ -654,6 +655,9 @@ def get_excel序号_列表(开头序号_字母或数字__包括开头, 结尾序
 
 def _get_excel_合并单元格__xlrd(sheet, 行下标, 列下标):
     单元格值 = sheet.cell_value(行下标, 列下标)
+    # 处理日期字段，格式化成 '2025-12-12 11:02:00'
+    if sheet.cell(rowx=行下标, colx=列下标).ctype == xlrd.XL_CELL_DATE:
+        单元格值 = xldate_as_datetime(单元格值, sheet.book.datemode).strftime("%Y-%m-%d %H:%M:%S")
     if not 单元格值:
         merged = sheet.merged_cells
         for (row_index_min, row_index_max, col_index_min, col_index_max) in merged:
