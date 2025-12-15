@@ -430,9 +430,10 @@ def _get_file_rows__excel(文件全路径, sheet下标或名称=0, encoding="utf
 
 
 def from_rows_to_excel(rows, 文件全路径="result.xlsx", sheetName=None):
-    wb = openpyxl.Workbook()
+    wb = openpyxl.Workbook(write_only=True)
     try:
-        sheet = wb.active
+        # sheet = wb.active
+        sheet = wb.create_sheet()
         if sheetName:
             sheet.title = sheetName
 
