@@ -1213,7 +1213,7 @@ class Oracle:
 
 
     def to_excel(self, sql:str, 文件全路径:str, 每次取多少行=7000):
-        wb = openpyxl.Workbook()
+        wb = openpyxl.Workbook(write_only=True)
         try:
             当前写入多少行 = 0
             单sheet上限 = 1000000
@@ -1221,12 +1221,12 @@ class Oracle:
             cursor = self.cursor
             cursor.execute(sql)
 
-            sheet = wb.active
+            # sheet = wb.active
+            sheet = wb.create_sheet()
             # 3. 写入表头（可选）
             col_names = tuple(c[0] for c in cursor.description) if cursor.description else ()
             sheet.append(col_names)  # 写入列名
             当前写入多少行 += 1
-            current_row = 2  # 数据从第2行开始（第1行是表头）
 
 
             # 4. 分批读取+写入
@@ -1239,14 +1239,15 @@ class Oracle:
                     yield rows
 
             for data_batch in read_db_batch(cursor, 每次取多少行):
-                待写入多少行 = len(data_batch)
+                # 待写入多少行 = len(data_batch)
+                待写入多少行 = 每次取多少行
                 if 当前写入多少行 + 待写入多少行 > 单sheet上限:
                     # 新开一个sheet
                     sheet = wb.create_sheet()
                     当前写入多少行 = 0
 
                 for row_data in data_batch:
-                    ws.append(row_data)  # append()是openpyxl批量写入的高效方式
+                    sheet.append(row_data)  # append()是openpyxl批量写入的高效方式
                 当前写入多少行 += 待写入多少行
 
             rm(文件全路径)
@@ -1485,6 +1486,53 @@ class Pgsql:
 
     def rollback(self):
         self.conn.rollback()
+        return self
+
+
+    def to_excel(self, sql:str, 文件全路径:str, 每次取多少行=7000):
+        wb = openpyxl.Workbook(write_only=True)
+        try:
+            当前写入多少行 = 0
+            单sheet上限 = 1000000
+
+            cursor = self.cursor
+            cursor.execute(sql)
+
+            # sheet = wb.active
+            sheet = wb.create_sheet()
+            # 3. 写入表头（可选）
+            col_names = tuple(c[0] for c in cursor.description) if cursor.description else ()
+            sheet.append(col_names)  # 写入列名
+            当前写入多少行 += 1
+
+
+            # 4. 分批读取+写入
+            def read_db_batch(cursor, batch_size):
+                """分批读取数据库数据，生成器（节省内存）"""
+                while True:
+                    rows = cursor.fetchmany(batch_size)
+                    if not rows:
+                        break
+                    yield rows
+
+            for data_batch in read_db_batch(cursor, 每次取多少行):
+                # 待写入多少行 = len(data_batch)
+                待写入多少行 = 每次取多少行
+                if 当前写入多少行 + 待写入多少行 > 单sheet上限:
+                    # 新开一个sheet
+                    sheet = wb.create_sheet()
+                    当前写入多少行 = 0
+
+                for row_data in data_batch:
+                    sheet.append(row_data)  # append()是openpyxl批量写入的高效方式
+                当前写入多少行 += 待写入多少行
+
+            rm(文件全路径)
+            mkdir(get文件所在目录(文件全路径))
+            wb.save(文件全路径)
+        finally:
+            wb.close()
+
         return self
 
 
