@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2025-12-12
-# @PreTime : 2025-12-11
+# @Time    : 2025-12-15
+# @PreTime : 2025-12-12
 # @Author  : hlmio
 import os
 import shutil
@@ -431,28 +431,30 @@ def _get_file_rows__excel(文件全路径, sheet下标或名称=0, encoding="utf
 
 def from_rows_to_excel(rows, 文件全路径="result.xlsx", sheetName=None):
     wb = openpyxl.Workbook()
-    sheet = wb.active
-    if sheetName:
-        sheet.title = sheetName
+    try:
+        sheet = wb.active
+        if sheetName:
+            sheet.title = sheetName
 
-    one_sheet_rows = rows
-    groups = []
-    单sheet数据上限 = 1000000
-    if len(rows) > 单sheet数据上限:
-        groups = split_list_by_count(rows, 单sheet数据上限)
-        one_sheet_rows = groups[0]
+        one_sheet_rows = rows
+        groups = []
+        单sheet数据上限 = 1000000
+        if len(rows) > 单sheet数据上限:
+            groups = split_list_by_count(rows, 单sheet数据上限)
+            one_sheet_rows = groups[0]
 
-    for i in one_sheet_rows:
-        sheet.append(i)
-    if len(groups) > 1:
-        for group in groups[1:]:
-            sheet = wb.create_sheet()
-            for i in group:
-                sheet.append(i)
-    rm(文件全路径)
-    mkdir(get文件所在目录(文件全路径))
-    wb.save(文件全路径)
-
+        for i in one_sheet_rows:
+            sheet.append(i)
+        if len(groups) > 1:
+            for group in groups[1:]:
+                sheet = wb.create_sheet()
+                for i in group:
+                    sheet.append(i)
+        rm(文件全路径)
+        mkdir(get文件所在目录(文件全路径))
+        wb.save(文件全路径)
+    finally:
+        wb.close()
 
 def get_excel_workbook(文件路径, 底层实现="xlrd"):
     底层实现 = 底层实现.lower()
@@ -854,6 +856,11 @@ class 配置类:
 
 
 # region 8.dao
+try:
+    import openpyxl
+except:
+    print("pip install openpyxl")
+
 
 def __get_conf_vlaue(conf, key_list, default=""):
     value = default
@@ -1107,10 +1114,20 @@ class Oracle:
         self.count = 0
         self.rows = []
         self.lines = []
-        self.rows_with_title = []
+        self.title = []
 
     def __del__(self):
         self.close()
+
+    def close(self):
+        if self.cursor:
+            try:
+                self.cursor.close()
+            except: pass
+        if self.conn:
+            try:
+                self.conn.close()
+            except: pass
 
     @staticmethod
     def 实例化(new_conf={}):
@@ -1120,28 +1137,21 @@ class Oracle:
 
     def exec(self, sql: str, params=None):
         if params:
-            cursor = self.cursor.execute(sql, params)
+            rst = self.cursor.execute(sql, params)
         else:
-            cursor = self.cursor.execute(sql)
+            rst = self.cursor.execute(sql)
 
-        if cursor:
+        if rst:
             cursor = self.cursor
-            self.rows = cursor.fetchall()
             self.count = cursor.rowcount
+            self.rows = cursor.fetchall()
             self.lines = self._rows_to_lines(self.rows, cursor)
-            self.rows_with_title = []
-            try:
-                col_names = [c[0] for c in cursor.description]
-                self.rows_with_title.append(col_names)
-                for i in self.rows:
-                    self.rows_with_title.append(i)
-            except:
-                pass
+            self.title = [c[0] for c in cursor.description]
         else:
             self.count = 0
             self.rows = []
             self.lines = []
-            self.rows_with_title = []
+            self.title = []
         return self
 
     def call(self, proc_name: str, params=[]):
@@ -1157,19 +1167,12 @@ class Oracle:
             self.rows = cursor.fetchall()
             self.count = cursor.rowcount
             self.lines = self._rows_to_lines(self.rows, cursor)
-            self.rows_with_title = []
-            try:
-                col_names = [c[0] for c in cursor.description]
-                self.rows_with_title.append(col_names)
-                for i in self.rows:
-                    self.rows_with_title.append(i)
-            except:
-                pass
+            self.title = [c[0] for c in cursor.description]
         else:
             self.count = 0
             self.rows = []
             self.lines = []
-            self.rows_with_title = []
+            self.title = []
         return self
 
     def callfunc(self, proc_name: str, params=[], 返回值类型=None):
@@ -1187,19 +1190,12 @@ class Oracle:
             self.rows = cursor.fetchall()
             self.count = cursor.rowcount
             self.lines = self._rows_to_lines(self.rows, cursor)
-            self.rows_with_title = []
-            try:
-                col_names = [c[0] for c in cursor.description]
-                self.rows_with_title.append(col_names)
-                for i in self.rows:
-                    self.rows_with_title.append(i)
-            except:
-                pass
+            self.title = [c[0] for c in cursor.description]
         else:
             self.count = 0
             self.rows = []
             self.lines = []
-            self.rows_with_title = []
+            self.title = []
         return rst;
 
 
@@ -1216,15 +1212,57 @@ class Oracle:
         return self
 
 
-    def close(self):
-        if self.cursor:
-            try:
-                self.cursor.close()
-            except: pass
-        if self.conn:
-            try:
-                self.conn.close()
-            except: pass
+    def to_excel(self, sql:str, 文件全路径:str, 每次取多少行=7000):
+        wb = openpyxl.Workbook()
+        try:
+            当前写入多少行 = 0
+            单sheet上限 = 1000000
+
+            cursor = self.cursor
+            cursor.execute(sql)
+
+            sheet = wb.active
+            # 3. 写入表头（可选）
+            col_names = tuple(c[0] for c in cursor.description) if cursor.description else ()
+            sheet.append(col_names)  # 写入列名
+            当前写入多少行 += 1
+            current_row = 2  # 数据从第2行开始（第1行是表头）
+
+
+            # 4. 分批读取+写入
+            def read_db_batch(cursor, batch_size):
+                """分批读取数据库数据，生成器（节省内存）"""
+                while True:
+                    rows = cursor.fetchmany(batch_size)
+                    if not rows:
+                        break
+                    yield rows
+
+            for data_batch in read_db_batch(cursor, 每次取多少行):
+                待写入多少行 = len(data_batch)
+                if 当前写入多少行 + 待写入多少行 > 单sheet上限:
+                    # 新开一个sheet
+                    sheet = wb.create_sheet()
+                    当前写入多少行 = 0
+
+                for row_data in data_batch:
+                    ws.append(row_data)  # append()是openpyxl批量写入的高效方式
+                当前写入多少行 += 待写入多少行
+
+            rm(文件全路径)
+            mkdir(get文件所在目录(文件全路径))
+            wb.save(文件全路径)
+        finally:
+            wb.close()
+
+        return self
+
+    def get_rows_with_title(self):
+        rows_with_title = []
+        rows_with_title.append(self.title)
+        for i in self.rows:
+            rows_with_title.append(i)
+        return rows_with_title
 
     def _rows_to_lines(self, rows, cursor):
         lines = []
@@ -1396,11 +1434,13 @@ class Pgsql:
         self.count = 0
         self.rows = []
         self.lines = []
-        self.rows_with_title = []
 
         # self.conn.autocommit(True)
 
     def __del__(self):
+        self.close()
+
+    def close(self):
         if self.cursor:
             try:
                 self.cursor.close()
@@ -1425,14 +1465,6 @@ class Pgsql:
         self.rows = self.cursor.fetchall()
         self.count = self.cursor.rowcount
         self.lines = self._rows_to_lines(self.rows, self.cursor)
-        self.rows_with_title = []
-        try:
-            col_names = [c[0] for c in self.cursor.description]
-            self.rows_with_title.append(col_names)
-            for i in self.rows:
-                self.rows_with_title.append(i)
-        except:
-            pass
         return self
 
     def call(self, proc_name: str, params=[]):
@@ -1441,6 +1473,7 @@ class Pgsql:
         self.count = self.cursor.rowcount
         self.lines = self._rows_to_lines(self.rows, self.cursor)
         return self
+
 
     def begin(self):
         self.conn.begin()
@@ -1453,6 +1486,15 @@ class Pgsql:
     def rollback(self):
         self.conn.rollback()
         return self
+
+
+    def get_rows_with_title(self):
+        rows_with_title = []
+        col_names = [c[0] for c in self.cursor.description]
+        rows_with_title.append(col_names)
+        for i in self.rows:
+            rows_with_title.append(i)
+        return rows_with_title
 
     def _rows_to_lines(self, rows, cursor):
         try:
