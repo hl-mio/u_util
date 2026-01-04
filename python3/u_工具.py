@@ -1705,28 +1705,28 @@ def to_round(数据, 保留几位小数=0):
 
 时间字符串_模板 = "%Y-%m-%d %H:%M:%S"
 
-def from_oracle_time_format_to_py_time_format(格式字符串):
-    格式字符串 = 格式字符串.replace("YYYY","%Y")
-    格式字符串 = 格式字符串.replace("MM", "%m")
-    格式字符串 = 格式字符串.replace("DD", "%d")
-    格式字符串 = 格式字符串.replace("HH24", "%H")
-    格式字符串 = 格式字符串.replace("MI", "%M")
-    格式字符串 = 格式字符串.replace("SS", "%S")
-    格式字符串 = 格式字符串.replace("FF", "%f")
-    格式字符串 = 格式字符串.replace("FF3", "%f")
-    格式字符串 = 格式字符串.replace("FF6", "%f")
+def from_oracle_time_format_to_py_time_format(format_str):
+    # 定义映射关系（按长度从长到短，避免短匹配覆盖长匹配）
+    mapping = {
+        "YYYY": "%Y", "yyyy": "%Y",
+        "MM": "%m", "mm": "%m",
+        "DD": "%d", "dd": "%d",
+        "HH24": "%H", "hh24": "%H",
+        "MI": "%M", "mi": "%M",
+        "SS": "%S", "ss": "%S",
+        "FF6": "%f", "ff6": "%f",
+        "FF3": "%f", "ff3": "%f",
+        "FF": "%f", "ff": "%f"
+    }
 
-    格式字符串 = 格式字符串.replace("yyyy","%Y")
-    格式字符串 = 格式字符串.replace("mm", "%m")
-    格式字符串 = 格式字符串.replace("dd", "%d")
-    格式字符串 = 格式字符串.replace("hh24", "%H")
-    格式字符串 = 格式字符串.replace("mi", "%M")
-    格式字符串 = 格式字符串.replace("ss", "%S")
-    格式字符串 = 格式字符串.replace("ff", "%f")
-    格式字符串 = 格式字符串.replace("ff3", "%f")
-    格式字符串 = 格式字符串.replace("ff6", "%f")
+    # 按最长匹配优先排序
+    pattern = re.compile("|".join(sorted(mapping.keys(), key=len, reverse=True)))
 
-    return 格式字符串
+    # 替换函数
+    def replace(match):
+        return mapping[match.group(0)]
+
+    return pattern.sub(replace, format_str)
 
 
 def to_time_datetime(字符串or时间戳or时间元组=0, 格式字符串=时间字符串_模板, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0, 是否由oracle格式转为py格式=True):
