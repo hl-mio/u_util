@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2026-01-04
-# @PreTime : 2025-12-15
+# @Time    : 2026-01-22
+# @PreTime : 2026-01-04
 # @Author  : hlmio
 import os
 import shutil
@@ -1144,13 +1144,13 @@ class Oracle:
 
         if rst:
             cursor = self.cursor
-            self.count = cursor.rowcount
             self.rows = cursor.fetchall()
+            self.count = cursor.rowcount
             self.lines = self._rows_to_lines(self.rows, cursor)
             self.title = [c[0] for c in cursor.description]
         else:
-            self.count = 0
             self.rows = []
+            self.count = 0
             self.lines = []
             self.title = []
         return self
@@ -1170,8 +1170,8 @@ class Oracle:
             self.lines = self._rows_to_lines(self.rows, cursor)
             self.title = [c[0] for c in cursor.description]
         else:
-            self.count = 0
             self.rows = []
+            self.count = 0
             self.lines = []
             self.title = []
         return self
@@ -1193,8 +1193,8 @@ class Oracle:
             self.lines = self._rows_to_lines(self.rows, cursor)
             self.title = [c[0] for c in cursor.description]
         else:
-            self.count = 0
             self.rows = []
+            self.count = 0
             self.lines = []
             self.title = []
         return rst;
@@ -1321,8 +1321,8 @@ class Mysql:
                                     db=conf["db"], charset=conf["charset"])
         self.cursor = self.conn.cursor()
 
-        self.count = 0
         self.rows = []
+        self.count = 0
         self.lines = []
 
         self.conn.autocommit(True)
@@ -1433,8 +1433,8 @@ class Pgsql:
                                      database=conf["db"])
         self.cursor = self.conn.cursor()
 
-        self.count = 0
         self.rows = []
+        self.count = 0
         self.lines = []
 
         # self.conn.autocommit(True)
