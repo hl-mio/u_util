@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2026-01-22
-# @PreTime : 2026-01-04
+# @Time    : 2026-01-29
+# @PreTime : 2026-01-22
 # @Author  : hlmio
 import os
 import shutil
@@ -1734,13 +1734,20 @@ def to_time_datetime(字符串or时间戳or时间元组=0, 格式字符串=时�
     if 是否由oracle格式转为py格式:
         格式字符串 = from_oracle_time_format_to_py_time_format(格式字符串)
 
-
     def from_str_to_datetime():
         字符串 = obj  # type:str
         字符串 = 字符串.strip()
         if 字符串 == "" or 字符串 == "0":
             return get_now_datetime()
-        return datetime.datetime.strptime(字符串, 格式字符串)
+        fmt = 格式字符串
+        if not fmt:
+            if len(字符串) == 10:
+                fmt = "%Y-%m-%d"
+            elif len(字符串) == 19 and "T" in 字符串:
+                fmt = "%Y-%m-%dT%H:%M:%S"
+            elif len(字符串) == 19:
+                fmt = "%Y-%m-%d %H:%M:%S"
+        return datetime.datetime.strptime(字符串, fmt)
 
     def from_时间元组_to_datetime():
         return datetime.datetime.fromtimestamp(obj)
@@ -1771,25 +1778,28 @@ def to_time_datetime(字符串or时间戳or时间元组=0, 格式字符串=时�
         return datetime.datetime.now()
 
     switch = {
-        "<class 'str'>": from_str_to_datetime,
-        "<class 'int'>": from_时间戳_to_datetime,
-        "<class 'float'>": from_时间戳_to_datetime,
-        "<class 'tuple'>": from_普通元组_to_datetime,
-        "<class 'time.struct_time'>": from_时间元组_to_datetime,
-        "<class 'datetime.datetime'>": from_datetime_to_datetime,
+        str: from_str_to_datetime,
+        int: from_时间戳_to_datetime,
+        float: from_时间戳_to_datetime,
+        tuple: from_普通元组_to_datetime,
+        time.struct_time: from_时间元组_to_datetime,
+        datetime.datetime: from_datetime_to_datetime,
     }
-    原点时间 = switch.get(repr(type(obj)), default)()
+    原点时间 = switch.get(type(obj), default)()
 
     # 接下来处理时间的增减
     增加的时间 = datetime.timedelta(seconds=增加几秒, minutes=增加几分钟, hours=增加几小时, days=增加几天)
     return 原点时间 + 增加的时间
 
 
-def to_time_str(datetime_or_字符串or时间戳or时间元组=0, 格式字符串=时间字符串_模板, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0, 格式字符串_旧=时间字符串_模板, 是否由oracle格式转为py格式=True):
+def to_time_str(datetime_or_字符串or时间戳or时间元组=0, 格式字符串=时间字符串_模板, 增加几秒=0, 增加几分钟=0, 增加几小时=0, 增加几天=0, 格式字符串_旧="", 是否由oracle格式转为py格式=True):
     if isinstance(datetime_or_字符串or时间戳or时间元组, str):
         时间对象 = to_time_datetime(datetime_or_字符串or时间戳or时间元组, 格式字符串_旧, 增加几秒, 增加几分钟, 增加几小时, 增加几天, 是否由oracle格式转为py格式=True)
     else:
         时间对象 = to_time_datetime(datetime_or_字符串or时间戳or时间元组, 格式字符串, 增加几秒, 增加几分钟, 增加几小时, 增加几天, 是否由oracle格式转为py格式=True)
+
+    if 是否由oracle格式转为py格式:
+        格式字符串 = from_oracle_time_format_to_py_time_format(格式字符串)
     return 时间对象.strftime(格式字符串)
 
 
@@ -1808,7 +1818,7 @@ def to_now_datetime():
 
 
 def to_now_str(格式字符串=时间字符串_模板, 是否由oracle格式转为py格式=True):
-    return to_time_str(0, 格式字符串, 是否由oracle格式转为py格式=True)
+    return to_time_str(0, 格式字符串, 是否由oracle格式转为py格式=是否由oracle格式转为py格式)
 
 
 def to_now_unix():
