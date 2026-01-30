@@ -2112,7 +2112,7 @@ def cp(旧文件, 新文件, 不删旧文件=True):
         if not exist(新文件):
             mk(新文件)
         with open(新文件, "ab") as ff:
-            for i in ls(旧文件, 要包含前缀=True):
+            for i in ls(旧文件, 包含前缀=True):
                 with open(i, "rb") as f:
                     ff.write(f.read())
 
