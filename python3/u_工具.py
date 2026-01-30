@@ -2787,11 +2787,11 @@ def stream(iteration):
         raise Exception("stream化失败,参数类型未支持")
 
     switch = {
-        "<class 'list'>": list_处理,
-        "<class 'tuple'>": list_处理,
-        "<class 'str'>": list_处理,
-        "<class 'dict'>": dict_处理
+        list: list_处理,
+        tuple: list_处理,
+        str: list_处理,
+        dict: dict_处理
     }
-    return switch.get(repr(type(iteration)), default)()
+    return switch.get(type(iteration), default)()
 
 # endregion 1.流式计算
