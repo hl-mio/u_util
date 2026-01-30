@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2026-01-29
-# @PreTime : 2026-01-22
+# @Time    : 2026-01-30
+# @PreTime : 2026-01-29
 # @Author  : hlmio
 import os
 import shutil
@@ -1973,6 +1973,8 @@ def to_变量名(变量):
 
 
 # region 6.fileSystem
+import glob
+
 try:
     import pyperclip
 except: pass
@@ -2002,13 +2004,23 @@ def pwd(文件全路径):
 
 def ls(文件全路径, 包含前缀=True, 选项=""):
     选项 = 选项.lower()
+    is_deep = False
+    if ("p" in 选项) or ("r" in 选项):
+        is_deep = True
+
+    # glob
+    if ("*" in 文件全路径) or ("?" in 文件全路径):
+        if "**" in 文件全路径:
+            is_deep = True
+        return ls_glob(文件全路径, is_deep=is_deep, 包含前缀=包含前缀)
+
     if not exist(文件全路径):
         return []
     if not isdir(文件全路径):
         return [文件全路径]
 
-    if ("p" in 选项) or ("r" in 选项):
-        filePaths = getAllFilePaths(文件全路径, is_deep=True)
+    if is_deep:
+        filePaths = _getAllFilePaths(文件全路径, is_deep=True)
         if not 包含前缀:
             filePaths = stream(filePaths).map(lambda i: get文件名(i)).collect()
         return filePaths
@@ -2018,6 +2030,13 @@ def ls(文件全路径, 包含前缀=True, 选项=""):
                 .map(lambda i: os.path.join(文件全路径, i)).collect()
         else:
             return os.listdir(文件全路径)
+
+
+def ls_glob(路径名称_带匹配符, is_deep=True, 包含前缀=True):
+    filePaths = glob.glob(路径名称_带匹配符, recursive=is_deep)
+    if not 包含前缀:
+        filePaths = stream(filePaths).map(lambda i: get文件名(i)).collect()
+    return filePaths
 
 
 def mkdir(文件全路径, 选项="-p"):
@@ -2063,6 +2082,7 @@ def rm(文件全路径, 选项="-rf"):
 
 
 def clear(文件全路径, 选项="-rf"):
+
     if not isdir(文件全路径): rm(文件全路径, 选项); return;
     if not exist(文件全路径): mk(文件全路径, 选项="-p"); return;
     stream(ls(文件全路径)).forEach(lambda f: rm(f, 选项))
@@ -2126,7 +2146,9 @@ def get文件所在目录(文件全路径):
     return os.path.dirname(文件全路径)
 
 
-def getAllFilePaths(baseFilePath, is_deep=True):
+
+
+def _getAllFilePaths(baseFilePath, is_deep=True):
     return getDeepFilePaths(baseFilePath, "*", is_deep)
 
 
