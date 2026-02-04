@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2026-01-30
-# @PreTime : 2026-01-29
+# @Time    : 2026-02-04
+# @PreTime : 2026-01-30
 # @Author  : hlmio
 import os
 import shutil
@@ -1155,6 +1155,13 @@ class Oracle:
             self.title = []
         return self
 
+    def exec_many(self, insert_sql: str, insert_data_rows: list, batch_size=7000, 是否每批次都提交=True):
+        rows = insert_data_rows
+        for i in split_list_by_count(rows, batch_size):
+            self.cursor.executemany(insert_sql, i)
+            if 是否每批次都提交:
+                self.commit()
+
     def call(self, proc_name: str, params=[]):
         in_out = self.cursor.callproc(proc_name, params)
         cur_index = -1;
@@ -1176,7 +1183,7 @@ class Oracle:
             self.title = []
         return self
 
-    def callfunc(self, proc_name: str, params=[], 返回值类型=None):
+    def call_func(self, proc_name: str, params=[], 返回值类型=None):
         if not 返回值类型:
             返回值类型 = cx_Oracle.STRING
         rst = self.cursor.callfunc(proc_name, 返回值类型, params)
