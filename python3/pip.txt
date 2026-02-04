@@ -1,8 +1,10 @@
---需要旧版本
+--需要指定的旧版本
 pip3 install xlrd==1.2.0
 pip3 install selenium==3.141.0
 
---无需旧版本
+
+--没有版本要求
+---- paramiko用于ssh远程连接
 pip3 install APScheduler==3.6.3
 pip3 install Flask==2.0.3
 pip3 install PyMySQL==1.0.2
@@ -10,7 +12,7 @@ pip3 install PyQRCode==1.2.1
 pip3 install PyYAML==6.0.1
 pip3 install beautifulsoup4==4.10.0
 pip3 install openpyxl==3.0.9
-pip3 install paramiko==3.4.0  --ssh远程连接
+pip3 install paramiko==3.4.0
 pip3 install pyinstaller==4.7
 pip3 install pykafka==2.8.0
 pip3 install redis-py-cluster==2.1.3
