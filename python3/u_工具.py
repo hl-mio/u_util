@@ -1112,8 +1112,8 @@ class Oracle:
             f'{conf["username"]}/{conf["password"]}@{conf["host"]}:{conf["port"]}/{conf["db"]}')
         self.cursor = self.conn.cursor()
 
-        self.count = 0
         self.rows = []
+        self.count = 0
         self.lines = []
         self.title = []
 
@@ -1143,6 +1143,7 @@ class Oracle:
             rst = self.cursor.execute(sql)
 
         if rst:
+            # 读取cursor.rowcount，要先fetch，不然是0。fetch后rowcount才会更新值。
             cursor = self.cursor
             self.rows = cursor.fetchall()
             self.count = cursor.rowcount
