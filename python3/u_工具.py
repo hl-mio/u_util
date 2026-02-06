@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2026-02-04
-# @PreTime : 2026-01-30
+# @Time    : 2026-02-06
+# @PreTime : 2026-02-04
 # @Author  : hlmio
 import os
 import shutil
@@ -2728,34 +2728,61 @@ class ListStream:
     def collect(self):
         return self.list
 
-    def sort(self, key=None, reverse=False, 比较函数_返回单个值用于比较=None, 比较函数_输入两个值返回比较结果=None):
-        if 比较函数_返回单个值用于比较:
-            key = 比较函数_返回单个值用于比较
-        elif 比较函数_输入两个值返回比较结果:
-            key = cmp_to_key(比较函数_输入两个值返回比较结果)
+    def sort(self, decode函数=None, is_desc=False,  cmp函数=None):
+        """
+        :param decode函数:
+            其实是key参数，起名decode方便理解
+            key跟decode很像：原值 → 映射值 → 排序，作为排序前的映射函数
+            但是key更强：支持多列排序 不仅可以返回一个值还可以返回多个值 等等
 
+            比如先偶数再奇数，组内按自身数值排序
+            key=lambda x: (x % 2, x)
+            等价于
+            ORDER BY
+              CASE WHEN MOD(x, 2) = 0 THEN 0 ELSE 1 END,
+              x
+
+        :param is_desc: 是否逆序，是否调换顺序，其实是reverse参数
+
+        :param cmp函数:
+            输入是list的前后两个数 a,b 需要返回 1、-1、0 定义a和b的大小关系
+
+            正数  1 a > b 先b在a
+            负数 -1 a < b 先a在b
+                 0 a = b 都行，不更换位置
+
+            不能简单理解为换不换
+            ❌ cmp比较器不是告诉排序器“要不要换”
+            ✅ cmp比较器是在定义 a 和 b 的大小关系
+            ❌ 0 ≠ “不换”
+            ✅ 0 = “完全相等”
+            只有换不换的关系只有冒泡排序没问题
+            现代算法多用快速排序，明确需要小于、等于的关系，正数不是换 真的是大于
+        :return: self
+        """
+        reverse = is_desc
+        key = decode函数
+        if cmp函数:
+            key = cmp_to_key(cmp函数)
         self.list.sort(key=key, reverse=reverse)
         return self
 
     def group_by_count(self, count):
         # return split_list_by_count(self.list, count)
-        return [self.list[i:i+count] for i in range(0,len(self.list),count)]
+        self.list = [self.list[i:i+count] for i in range(0,len(self.list),count)]
+        return self
     def group(self, group_key=None, sort_key=None):
+        # 要先排序，不然分组结果不对
         key1 = group_key
         if sort_key:
             key1 = sort_key
         self.sort(key1)
-
+        # 然后进行分组
         new_list = []
         for field, group in groupby(self.list, group_key):
             new_list.append(list(group))
-        return new_list
-    # def group_by_cmp(self, cmp, reverse=False):
-    #     # self.sort_by_cmp(cmp, reverse)
-    #     new_list = []
-    #     for key, group in groupby(self.list, cmp):
-    #         new_list.append(list(group))
-    #     return new_list
+        self.list = new_list
+        return self
 
 
 class DictStream(ListStream):
