@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2026-03-05
-# @PreTime : 2026-03-03
+# @Time    : 2026-03-11
+# @PreTime : 2026-03-05
 # @Author  : hlmio
 import os
 import shutil
@@ -16,7 +16,8 @@ import pathlib
 import functools
 import csv
 from functools import wraps
-from decimal import *
+import decimal
+decimal.getcontext().rounding = decimal.ROUND_HALF_UP
 
 
 # region 未分类
@@ -1742,7 +1743,7 @@ def from_byte_to_hex(字节):
 # region 基本数据类型
 def to_number(文本, isDecimal=True):
     if isDecimal:
-        rst = Decimal("0.00")
+        rst = decimal.Decimal("0.00")
     else:
         rst = 0.00
 
@@ -1751,19 +1752,28 @@ def to_number(文本, isDecimal=True):
             if not isinstance(文本, str):
                 str(文本)
             if isDecimal:
-                rst = Decimal(文本)
+                rst = decimal.Decimal(文本)
             else:
                 rst = float(文本)
     except: pass
     return rst
 
 def to_round(数据, 保留几位小数=0):
-    数据_str = str(数据)
-    整数位数 = 数据_str.find(".")
-    if 数据 < 0:
-        整数位数 -= 1
-    return Context(prec=整数位数 + 保留几位小数, rounding=ROUND_HALF_UP).create_decimal(数据_str)
+    # 转成 Decimal
+    dec = decimal.Decimal(数据)
 
+    # 整数部分长度
+    if dec == 0:
+        整数位数 = 1
+    else:
+        整数位数 = len(dec.copy_abs().to_integral_value().__str__())
+
+    # 总精度 = 整数位 + 小数位
+    精度 = 整数位数 + 保留几位小数
+
+    # 创建临时 Context 并保留 ROUND_HALF_UP
+    ctx = decimal.Context(prec=精度, rounding=decimal.ROUND_HALF_UP)
+    return ctx.create_decimal(dec)
 
 # endregion 基本数据类型
 
