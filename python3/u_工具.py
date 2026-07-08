@@ -1550,7 +1550,11 @@ class Pgsql:
 
     def call(self, proc_name: str, params=[]):
         self.cursor.callproc(proc_name, params)
-        self.rows = self.cursor.fetchall()
+        # 存储过程不一定有返回集，捕获异常兜底
+        try:
+            self.rows = self.cursor.fetchall()
+        except psycopg2.ProgrammingError:
+            self.rows = []
         self.count = self.cursor.rowcount
         self.lines = self._rows_to_lines(self.rows, self.cursor)
         return self
