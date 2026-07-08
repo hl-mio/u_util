@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2026-03-11
-# @PreTime : 2026-03-05
+# @Time    : 2026-07-08
+# @PreTime : 2026-03-11
 # @Author  : hlmio
 import os
 import shutil
@@ -1533,7 +1533,17 @@ class Pgsql:
             self.cursor.execute(sql, params)
         else:
             self.cursor.execute(sql)
-        self.rows = self.cursor.fetchall()
+
+        sql_upper = sql.strip().upper()
+        is_query = sql_upper.startswith("SELECT") or sql_upper.startswith("WITH")
+        # 包含RETURNING的INSERT/UPDATE/DELETE也有结果集，需要fetch
+        has_returning = "RETURNING" in sql_upper
+
+        if is_query or has_returning:
+            self.rows = self.cursor.fetchall()
+        else:
+            self.rows = []
+
         self.count = self.cursor.rowcount
         self.lines = self._rows_to_lines(self.rows, self.cursor)
         return self
