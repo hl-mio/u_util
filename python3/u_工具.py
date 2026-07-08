@@ -1643,7 +1643,7 @@ def pgsql(new_conf={}):
     return Pgsql.实例化(new_conf)
 
 
-# endregion --mysql
+# endregion --postgresql
 
 # endregion 8.dao
 
