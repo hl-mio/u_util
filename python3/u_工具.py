@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2026-07-08
-# @PreTime : 2026-03-11
+# @Time    : 2026-07-17
+# @PreTime : 2026-07-08
 # @Author  : hlmio
 import os
 import shutil
@@ -1746,6 +1746,12 @@ def from_rows_to_img(写入的文件全路径, 数据行_rows, 表头行_row=Non
         rm(写入的文件全路径)
     return img
 
+
+def from_dict_to_rows(dict):
+    return [
+        list(统计数据.keys()),
+        list(统计数据.values())
+    ]
 
 
 def from_hex_to_byte(str):
