@@ -1747,12 +1747,6 @@ def from_rows_to_img(写入的文件全路径, 数据行_rows, 表头行_row=Non
     return img
 
 
-def from_dict_to_rows(dict):
-    return [
-        list(统计数据.keys()),
-        list(统计数据.values())
-    ]
-
 
 def from_hex_to_byte(str):
     return bytes.fromhex(str)
@@ -2691,7 +2685,31 @@ def from_rows_to_lines(源rows_lists, 标题行_list):
             r_dict[col_names[i]] = col
         lines.append(r_dict)
     return lines
+def from_lines_to_rows(lines):
+    """
+    将字典列表转换为二维行数据（表头+数据行）
+    :param lines: list[dict]，每个元素为一个字典，代表一行数据
+    :return: list[list]，第一行为表头，后续为数据行
+    """
+    # 空输入直接返回空列表，避免索引报错
+    if not lines:
+        return []
 
+    # 以第一个字典的键为基准生成表头，保持插入顺序
+    headers = list(lines[0].keys())
+    rows = [headers]
+
+    # 遍历每行数据，按表头顺序取值，缺失字段自动填空字符串
+    for line in lines:
+        row = [line.get(header, "") for header in headers]
+        rows.append(row)
+
+    return rows
+def from_dict_to_rows(dict):
+    return [
+        list(dict.keys()),
+        list(dict.values())
+    ]
 
 
 def split_list_by_count(源list, count_几个元素分一组):
