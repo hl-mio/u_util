@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2026-07-17
-# @PreTime : 2026-07-08
+# @Time    : 2026-08-03
+# @PreTime : 2026-07-17
 # @Author  : hlmio
 import os
 import shutil
@@ -202,15 +202,31 @@ def 线程模式(func):
 
 # endregion 线程
 
-# region --定时任务
-try:
-    from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
-    from apscheduler.schedulers.background import BackgroundScheduler
-except:
-    print("pip install APScheduler")
+# endregion
 
-_scheduler = None
-_定时任务列表 = []
+
+# region 13.定时任务
+
+#region 例子
+# @定时任务_注册('interval', 首次是否执行=False, seconds=5)
+# def 定时任务示例_间隔任务():
+#     print(f'''-----------------{to_now_str()}------------------''')
+# 
+# @定时任务_注册('cron', 首次是否执行=False, hour=19, minute=25)
+# def 定时任务示例_定时任务():
+#     print(f'''--------定时---------{to_now_str()}------------------''')
+# 
+# def 要执行一遍被装饰的函数():
+#     定时任务示例_间隔任务()
+#     定时任务示例_定时任务()
+# 
+# if __name__ == '__main__':
+#     要执行一遍被装饰的函数()
+#     启动定时任务_阻塞主线程()
+#endregion
+
+__scheduler = None
+__定时任务列表 = []
 
 
 def 定时任务_注册(触发器类型='interval', id=None, 首次是否执行=True, *任务args, **任务kwargs):  # 这里的参数，是给装饰器的参数
@@ -234,7 +250,6 @@ def 定时任务_注册(触发器类型='interval', id=None, 首次是否执行=
         return inner
 
     return wrap
-
 
 def 定时任务_启动():  # 这里的参数，是给装饰器的参数
     # region 装饰器的初始化区：（1）装饰了别人才会执行 （2）有几个@，就执行几次
@@ -267,11 +282,16 @@ def 注册定时任务(func, 触发器类型, args, kwargs, id, *任务args, **�
     新任务["id"] = id
     新任务["任务args"] = 任务args
     新任务["任务kwargs"] = 任务kwargs
-    global _定时任务列表
-    _定时任务列表.append(新任务)
-
+    global __定时任务列表
+    __定时任务列表.append(新任务)
 
 def 启动定时任务():
+    try:
+        from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
+        from apscheduler.schedulers.background import BackgroundScheduler
+    except:
+        print("pip install APScheduler")
+
     __executors = {
         'default': ThreadPoolExecutor(20),  # 线程池
         'processpool': ProcessPoolExecutor(5)  # 进程池
@@ -282,33 +302,30 @@ def 启动定时任务():
         'max_instances': 1,  # 同一任务的运行实例个数
         'misfire_grace_time': 60  # 超时间隔，超过了就弃掉任务
     }
-    global _scheduler
-    _scheduler = BackgroundScheduler(executors=__executors, job_defaults=__job_defaults,
+    global __scheduler
+    __scheduler = BackgroundScheduler(executors=__executors, job_defaults=__job_defaults,
                                      timezone='Asia/Shanghai')
-    for i in _定时任务列表:
-        _scheduler.add_job(i["任务"], i["触发器类型"], i["原始函数args"], i["原始函数kwargs"], i["id"], *i["任务args"], **i["任务kwargs"])
-    _scheduler.start()
+    for i in __定时任务列表:
+        __scheduler.add_job(i["任务"], i["触发器类型"], i["原始函数args"], i["原始函数kwargs"], i["id"], *i["任务args"], **i["任务kwargs"])
+    __scheduler.start()
 
 
-@定时任务_启动()
 def 启动定时任务_阻塞主线程():
+    # 需要的时候手动调用启动
+    启动定时任务()
     while True:
         time.sleep(60 * 60 * 1)
 
-
-# endregion 定时任务
-
-# endregion
-
+# endregion 13.定时任务
 
 
 # region 12.文件传输 upload
-try:
-    import paramiko
-except:
-    print("pip install paramiko")
 # 通过ssh上传指定文件
 def upload_by_ssh(locate文件全路径, remote文件全路径, host, port, username, password):
+    try:
+        import paramiko
+    except:
+        print("pip install paramiko")
     try:
         t = paramiko.Transport((host, int(port)))
         t.connect(username=username, password=password)
@@ -1659,21 +1676,23 @@ import hashlib
 
 
 
-try:
-    import imgkit
-    from HTMLTable import HTMLTable
-except Exception as ex:
-    print("pip install imgkit==1.2.3")
-    print("pip install html-table==1.0")
-# imgkit==1.2.3
-# html-table==1.0
-#
-# imgkit底层调用wkhtmltopdf
-# 需配置系统环境变量
-# 或按以下例子主动写入配置
-# config = imgkit.config(wkhtmltoimage='D:/a_soft/wkhtmltopdf/bin/wkhtmltoimage')
-# imgkit.from_string(html_string, output_file, config=config)
+
 def from_rows_to_img(写入的文件全路径, 数据行_rows, 表头行_row=None, title="", is删除写入的文件=False):
+    try:
+        import imgkit
+        from HTMLTable import HTMLTable
+    except Exception as ex:
+        print("pip install imgkit==1.2.3")
+        print("pip install html-table==1.0")
+    # imgkit==1.2.3
+    # html-table==1.0
+    #
+    # imgkit底层调用wkhtmltopdf
+    # 需配置系统环境变量
+    # 或按以下例子主动写入配置
+    # config = imgkit.config(wkhtmltoimage='D:/a_soft/wkhtmltopdf/bin/wkhtmltoimage')
+    # imgkit.from_string(html_string, output_file, config=config)
+
     table = HTMLTable(caption=title)
 
     if 表头行_row:
