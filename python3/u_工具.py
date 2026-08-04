@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-# @Time    : 2026-08-03
-# @PreTime : 2026-07-17
+# @Time    : 2026-08-04
+# @PreTime : 2026-08-03
 # @Author  : hlmio
 import os
 import shutil
@@ -208,72 +208,114 @@ def 线程模式(func):
 # region 13.定时任务
 
 #region 例子
-# @定时任务_注册('interval', 首次是否执行=False, seconds=5)
+# from u_工具 import *
+#
+# @定时任务_注册_间隔触发(秒=5)
 # def 定时任务示例_间隔任务():
 #     print(f'''-----------------{to_now_str()}------------------''')
-# 
-# @定时任务_注册('cron', 首次是否执行=False, hour=19, minute=25)
+#
+# @定时任务_注册_cron触发(小时=20, 分钟=30)
 # def 定时任务示例_定时任务():
 #     print(f'''--------定时---------{to_now_str()}------------------''')
-# 
-# def 要执行一遍被装饰的函数():
-#     定时任务示例_间隔任务()
-#     定时任务示例_定时任务()
-# 
+#
 # if __name__ == '__main__':
-#     要执行一遍被装饰的函数()
 #     启动定时任务_阻塞主线程()
 #endregion
 
-__scheduler = None
-__定时任务列表 = []
+_scheduler = None
+_定时任务列表 = []
 
 
-def 定时任务_注册(触发器类型='interval', id=None, 首次是否执行=True, *任务args, **任务kwargs):  # 这里的参数，是给装饰器的参数
-    # region 装饰器的初始化区：（1）装饰了别人才会执行 （2）有几个@，就执行几次
-    # endregion
-
+def 定时任务_注册_间隔触发(秒=None, 分钟=None, 小时=None, 天=None):  # 这里的参数，是给装饰器的参数
+    # 装饰器的初始化区：（1）装饰了别人才会执行 （2）有几个@，就执行几次 （3）拿不到func，但可以在多wrap时用来指定用哪个wrap
     def wrap(func):
-        @wraps(func)  # 复制原始函数信息，并保留下来
+        # 装饰器的初始化区：（1）装饰了别人才会执行 （2）有几个@，就执行几次
+        触发器类型 = 'interval'
+        id = None
+        任务args = ()
+        任务kwargs = {
+            "seconds" : 秒,
+            "minutes": 分钟,
+            "hours": 小时,
+            "days": 天,
+        }
+        # 移除 None 值，避免传给触发器造成错误
+        任务kwargs = {k: v for k, v in 任务kwargs.items() if v is not None}
+        _注册定时任务(func, 触发器类型, (), {}, id, *任务args, **任务kwargs)
+
+        @wraps(func)  # 复制原始函数信息，并保留替换给返回的inner函数
         def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
-
-            # region 执行原始函数前
-            注册定时任务(func, 触发器类型, args, kwargs, id, *任务args, **任务kwargs)
-            # endregion
-
-            if 首次是否执行:
-                func(*args, **kwargs)
-
-            # region 执行原始函数后
-            # endregion
-
+            # 执行原始函数前
+            result = func(*args, **kwargs)
+            # 执行原始函数后
+            return result
         return inner
-
     return wrap
-
-def 定时任务_启动():  # 这里的参数，是给装饰器的参数
-    # region 装饰器的初始化区：（1）装饰了别人才会执行 （2）有几个@，就执行几次
-    # endregion
-
+def 定时任务_注册_cron触发(秒=None, 分钟=None, 小时=None, 天=None, 星期几=None, 月=None, 年=None):  # 这里的参数，是给装饰器的参数
+    """
+        表达式写法
+        星期几：数字1到7 或者 字符串周一到周七
+        单个值：小时=8
+        逗号分隔：小时=8,12,20
+        范围：小时=9-12
+        步长 */N：分钟='*/15' 每15分钟，小时='*/2' 每2小时
+        组合：天='1-7,15,last' 每月1~7号、15号、最后一天
+    """
+    # 装饰器的初始化区：（1）装饰了别人才会执行 （2）有几个@，就执行几次 （3）拿不到func，但可以在多wrap时用来指定用哪个wrap
+    def _转换星期几(星期几):
+        """将中文星期或数字统一转换为 APScheduler 可用的英文星期缩写"""
+        if 星期几 is None:
+            return None
+        if isinstance(星期几, int):
+            # 单个数字 1~7 直接转为对应缩写
+            映射 = {1: 'mon', 2: 'tue', 3: 'wed', 4: 'thu', 5: 'fri', 6: 'sat', 7: 'sun'}
+            return 映射.get(星期几, str(星期几))
+        if isinstance(星期几, str):
+            # 替换所有中文为英文
+            中文映射 = {
+                '周一': 'mon', '周二': 'tue', '周三': 'wed', '周四': 'thu',
+                '周五': 'fri', '周六': 'sat', '周七': 'sun', '周日': 'sun'
+            }
+            result = 星期几
+            for cn, en in 中文映射.items():
+                result = result.replace(cn, en)
+            # 数字字符串 "1,3,5" 也可以继续处理：转为英文
+            # 这里简化：如果 result 中还有数字，不再转换，允许混用
+            return result
+        return 星期几
     def wrap(func):
-        @wraps(func)  # 复制原始函数信息，并保留下来
+        # 装饰器的初始化区：（1）装饰了别人才会执行 （2）有几个@，就执行几次
+        触发器类型 = 'cron'
+        id = None
+        任务args = ()
+        任务kwargs = {
+            "second" : 秒,
+            "minute": 分钟,
+            "hour": 小时,
+            "day": 天,
+            "day_of_week": _转换星期几(星期几),
+            "month": 月,
+            "year": 年,
+        }
+        任务kwargs = {k: v for k, v in 任务kwargs.items() if v is not None}
+        _注册定时任务(func, 触发器类型, (), {}, id, *任务args, **任务kwargs)
+
+        @wraps(func)  # 复制原始函数信息，并保留替换给返回的inner函数
         def inner(*args, **kwargs):  # args和kwargs，是原始函数的参数；args是元祖，kwargs是字典
-
-            # region 执行原始函数前
-            启动定时任务()
-            # endregion
-
-            func(*args, **kwargs)  # 执行原始函数
-
-            # region 执行原始函数后
-            # endregion
-
+            # 执行原始函数前
+            result = func(*args, **kwargs)
+            # 执行原始函数后
+            return result
         return inner
-
     return wrap
+def 定时任务_启动(func): #装饰器不需要参数的写法
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        启动定时任务()           # 每次调用被装饰函数时启动（可加判断防止重复启动）
+        return func(*args, **kwargs)
+    return wrapper
 
-
-def 注册定时任务(func, 触发器类型, args, kwargs, id, *任务args, **任务kwargs):
+def _注册定时任务(func, 触发器类型, args, kwargs, id, *任务args, **任务kwargs):
     新任务 = {}
     新任务["任务"] = func
     新任务["触发器类型"] = 触发器类型
@@ -282,9 +324,8 @@ def 注册定时任务(func, 触发器类型, args, kwargs, id, *任务args, **�
     新任务["id"] = id
     新任务["任务args"] = 任务args
     新任务["任务kwargs"] = 任务kwargs
-    global __定时任务列表
-    __定时任务列表.append(新任务)
-
+    global _定时任务列表
+    _定时任务列表.append(新任务)
 def 启动定时任务():
     try:
         from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
@@ -294,22 +335,20 @@ def 启动定时任务():
 
     __executors = {
         'default': ThreadPoolExecutor(20),  # 线程池
-        'processpool': ProcessPoolExecutor(5)  # 进程池
+        # 'processpool': ProcessPoolExecutor(5),  # 进程池
     }
     __job_defaults = {
-        'coalesce': True,
         # 当有任务中途中断，后面恢复后，有N个任务没有执行 coalesce：true ，恢复的任务会执行一次  coalesce：false，恢复后的任务会执行N次配合misfire_grace_time使用
+        'coalesce': True,
         'max_instances': 1,  # 同一任务的运行实例个数
-        'misfire_grace_time': 60  # 超时间隔，超过了就弃掉任务
+        'misfire_grace_time': 60,  # 超时间隔，超过了就弃掉任务
     }
-    global __scheduler
-    __scheduler = BackgroundScheduler(executors=__executors, job_defaults=__job_defaults,
+    global _scheduler
+    _scheduler = BackgroundScheduler(executors=__executors, job_defaults=__job_defaults,
                                      timezone='Asia/Shanghai')
-    for i in __定时任务列表:
-        __scheduler.add_job(i["任务"], i["触发器类型"], i["原始函数args"], i["原始函数kwargs"], i["id"], *i["任务args"], **i["任务kwargs"])
-    __scheduler.start()
-
-
+    for i in _定时任务列表:
+        _scheduler.add_job(i["任务"], i["触发器类型"], i["原始函数args"], i["原始函数kwargs"], i["id"], *i["任务args"], **i["任务kwargs"])
+    _scheduler.start()
 def 启动定时任务_阻塞主线程():
     # 需要的时候手动调用启动
     启动定时任务()
